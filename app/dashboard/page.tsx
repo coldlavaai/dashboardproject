@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
-import { getCurrentUser, signOut } from '@/lib/auth/actions'
-import { Button } from '@/components/ui/button'
+import { getCurrentUser } from '@/lib/auth/actions'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { DashboardHeader } from '@/components/dashboard-header'
+import { Button } from '@/components/ui/button'
 
 export default async function DashboardPage() {
   const user = await getCurrentUser()
@@ -12,32 +13,11 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 to-primary/5">
-      {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-lg font-bold text-white">DBR</span>
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">DBR Dashboard</h1>
-              <p className="text-xs text-muted-foreground">Database Reactivation</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-sm font-medium">{user.profile?.full_name || user.email}</p>
-              <p className="text-xs text-muted-foreground capitalize">{user.profile?.role || 'User'}</p>
-            </div>
-            <form action={signOut}>
-              <Button variant="outline" size="sm">
-                Sign out
-              </Button>
-            </form>
-          </div>
-        </div>
-      </header>
+      <DashboardHeader
+        userName={user.profile?.full_name || null}
+        userEmail={user.email!}
+        userRole={user.profile?.role || 'User'}
+      />
 
       {/* Main Content */}
       <main className="container py-8">
