@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft, Upload, Users, MessageSquare, TrendingUp, Target, Database } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
+import { UploadLeadsModal } from '@/components/upload-leads-modal'
 
 interface Dataset {
   id: string
@@ -30,6 +31,7 @@ export function DatasetDetailClient({ datasetId }: DatasetDetailClientProps) {
   const [dataset, setDataset] = useState<Dataset | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [uploadModalOpen, setUploadModalOpen] = useState(false)
 
   useEffect(() => {
     fetchDataset()
@@ -121,7 +123,7 @@ export function DatasetDetailClient({ datasetId }: DatasetDetailClientProps) {
             Created {formatDistanceToNow(new Date(dataset.created_at), { addSuffix: true })} • Source: {dataset.source}
           </p>
         </div>
-        <Button size="lg">
+        <Button size="lg" onClick={() => setUploadModalOpen(true)}>
           <Upload className="mr-2 h-4 w-4" />
           Upload Leads
         </Button>
@@ -203,7 +205,7 @@ export function DatasetDetailClient({ datasetId }: DatasetDetailClientProps) {
               <p className="text-sm text-muted-foreground mb-6 max-w-sm">
                 Import a CSV file with your lead data. You'll be able to map columns and configure your campaign settings.
               </p>
-              <Button size="lg">
+              <Button size="lg" onClick={() => setUploadModalOpen(true)}>
                 <Upload className="mr-2 h-4 w-4" />
                 Upload CSV File
               </Button>
@@ -226,6 +228,12 @@ export function DatasetDetailClient({ datasetId }: DatasetDetailClientProps) {
           </CardContent>
         </Card>
       )}
+
+      <UploadLeadsModal
+        open={uploadModalOpen}
+        onOpenChange={setUploadModalOpen}
+        datasetId={datasetId}
+      />
     </div>
   )
 }
