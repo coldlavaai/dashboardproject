@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next'
+// @ts-ignore - next-pwa doesn't have TypeScript declarations for Next.js 16
 import withPWA from 'next-pwa'
 
 const nextConfig: NextConfig = {
@@ -23,6 +24,10 @@ const config = withPWA({
   disable: process.env.NODE_ENV === 'development',
   fallbacks: {
     document: '/offline.html',
+    image: '/offline.html',
+    audio: '/offline.html',
+    video: '/offline.html',
+    font: '/offline.html',
   },
   runtimeCaching: [
     {
