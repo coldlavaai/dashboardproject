@@ -58,8 +58,10 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser()
+    console.log('POST /api/datasets - User:', user ? { id: user.id, email: user.email } : null)
 
     if (!user || !user.profile) {
+      console.error('POST /api/datasets - No user or profile')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -75,13 +77,16 @@ export async function POST(request: Request) {
     const supabase = await createClient()
 
     // Get user's client
-    const { data: userClient } = await (supabase
+    const { data: userClient, error: clientError } = await (supabase
       .from('user_clients') as any)
       .select('client_id')
       .eq('user_id', user.id)
       .single()
 
+    console.log('POST /api/datasets - User client query result:', { userClient, clientError })
+
     if (!userClient) {
+      console.error('POST /api/datasets - No client found for user', user.id)
       return NextResponse.json({ error: 'No client found' }, { status: 404 })
     }
 
