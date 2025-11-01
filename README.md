@@ -30,13 +30,15 @@ Sophie is an AI conversation coach that:
 ## 📚 Complete Documentation
 
 ### Architecture & Design
-1. **[Database Schema](DBR_V2_DATABASE_SCHEMA.md)** - Complete Supabase/PostgreSQL structure
+1. **[Database Schema](DBR_V2_DATABASE_SCHEMA.md)** - Complete Supabase/PostgreSQL structure (13 tables)
 2. **[Component Architecture](DBR_V2_COMPONENT_ARCHITECTURE.md)** - UI components and frontend structure
 3. **[Sophie Intelligence](DBR_V2_SOPHIE_INTELLIGENCE.md)** - AI coaching system design
-4. **[API Routes](DBR_V2_API_ROUTES.md)** - All backend endpoints and data flows
+4. **[Prompt System](PROMPT_SYSTEM.md)** - AI agent prompt builder, templates, and versioning (NEW)
+5. **[API Routes](DBR_V2_API_ROUTES.md)** - All backend endpoints and data flows
 
-### Build Plan
-5. **[4-Week Build Plan](DBR_V2_BUILD_PLAN.md)** - Day-by-day development schedule
+### Build Plan & Decisions
+6. **[4-6 Week Build Plan](DBR_V2_BUILD_PLAN.md)** - Day-by-day development schedule
+7. **[Q&A Decisions](Q&A_DECISIONS.md)** - All 50+ architectural decisions documented (NEW)
 
 ---
 
@@ -46,11 +48,15 @@ Sophie is an AI conversation coach that:
 - Next.js 14 (App Router)
 - TypeScript
 - Tailwind CSS
+- **shadcn/ui** (component library)
 - React Hook Form + Zod
+- Recharts (analytics)
+- **PWA** (Progressive Web App - installable, offline, push notifications)
 
 **Backend:**
 - Next.js API Routes (serverless)
 - Supabase (PostgreSQL + Auth + Realtime + Storage)
+- Row Level Security (multi-tenant isolation)
 
 **AI:**
 - Claude 3.5 Sonnet (Anthropic) - Main AI agent
@@ -61,7 +67,7 @@ Sophie is an AI conversation coach that:
 - Cal.com (call booking)
 
 **Deployment:**
-- Vercel (hosting + cron jobs)
+- Vercel (hosting + cron jobs + queues)
 
 ---
 
@@ -164,20 +170,23 @@ vercel --prod
 ## 💡 Key Features
 
 ### For End Users (Sales Teams)
-- ✅ Upload leads via CSV (drag & drop, column mapping)
-- ✅ Automated M1/M2/M3 campaigns (customizable timing)
-- ✅ AI responds to every lead reply (within 60 seconds)
+- ✅ **PWA (Installable App)** - Install on phone like native app, works offline, push notifications
+- ✅ Upload leads via CSV (drag & drop, column mapping, duplicate detection)
+- ✅ Automated M1/M2/M3 campaigns (fully customizable timing, sending windows, rate limits)
+- ✅ AI responds to every lead reply (configurable response timing)
 - ✅ Manual mode (toggle AI off, respond yourself)
 - ✅ Click-to-call, click-to-email, clickable postcodes
 - ✅ Book calls directly via Cal.com integration
 - ✅ Real-time dashboard updates (Supabase Realtime)
-- ✅ Beautiful analytics (conversion funnel, trends, etc.)
+- ✅ Beautiful analytics (conversion funnel, trends, Sophie impact)
 
 ### For Admins
+- ✅ **Prompt Builder** - Q&A wizard or templates to create AI agent prompts
+- ✅ **Prompt Versioning** - Track changes, measure impact, rollback if needed
 - ✅ Multi-user access with role-based permissions
-- ✅ Sophie insights dashboard (AI coaching)
+- ✅ Sophie insights dashboard (AI coaching with priority flags)
 - ✅ Lessons library (build institutional knowledge)
-- ✅ Prompt management (edit AI behavior)
+- ✅ Campaign settings (25+ customizable parameters per campaign)
 - ✅ User management (invite, permissions, roles)
 - ✅ Client settings (branding, integrations)
 
@@ -265,43 +274,85 @@ Total:      £150-450/month
 
 ### Revenue Potential (When Selling)
 ```
-Starter:     £99/month  (1 dataset, 1,000 leads)
-Pro:         £299/month (5 datasets, 10,000 leads)
-Enterprise:  £999/month (unlimited)
+Setup Fee:   £500-1,500 (one-time onboarding)
 
-Break-even: 2-3 Pro clients
-Profit:     Scales rapidly
+Monthly Tiers:
+Starter:     £149/month (3 datasets, 1,000 leads, 3 users, co-branded)
+Pro:         £299/month (10 datasets, 10,000 leads, 10 users, co-branded)
+Enterprise:  £999/month (unlimited, white-label, custom domain)
+
+Add-ons:
+White-label: +£200/month
+Extra users: +£20/user/month
+
+Break-even: 2 Pro clients (£598/month revenue vs £150-450 costs)
+Profit Margin: 85%+ (scales with more clients)
 ```
 
 ---
 
 ## 🗺️ Roadmap
 
-### V2.0 (Current - 4 Weeks)
+### V2.0 - MVP (Current - 4-6 Weeks) ← **WE ARE HERE**
+**Channel:** SMS Only
+**Launch:** Mid-December 2025 with Greenstar Solar
+
+Core Features:
 - ✅ Full CRM (datasets, leads, conversations)
-- ✅ M1/M2/M3 automation
-- ✅ AI responses (Claude)
-- ✅ Sophie intelligence
-- ✅ Cal.com integration
-- ✅ Analytics dashboard
+- ✅ CSV upload with column mapping & validation
+- ✅ M1/M2/M3 SMS automation (Twilio)
+- ✅ AI responses (Claude 3.5 Sonnet)
+- ✅ Sophie intelligence (real-time analysis, lessons, prompts)
+- ✅ **Prompt Builder** (Q&A wizard + templates)
+- ✅ **Prompt Versioning** (track changes, measure impact)
+- ✅ Campaign Settings (25+ customization parameters)
+- ✅ Cal.com booking integration
+- ✅ Analytics dashboard with Sophie impact metrics
+- ✅ Multi-user with role-based permissions
+- ✅ **PWA** (installable, offline, push notifications)
+- ✅ Multi-tenant architecture (RLS isolation)
 
-### V2.1 (Month 2)
-- WhatsApp integration
-- Voice calling (Retell AI)
+**Why SMS Only:** Prove Sophie works perfectly on one channel before adding complexity.
+
+### V2.1 - Multi-Channel (4-6 Weeks After V2.0)
+**Channels:** SMS + WhatsApp + Email
+**Launch:** February 2026
+
+New Features:
+- WhatsApp integration (Twilio Business API)
+- Email campaigns (SendGrid or similar)
+- Unified inbox (SMS + WhatsApp + Email in one view)
+- Sophie analyzes ALL channels
+- Channel preferences per lead
+- Multi-channel campaign automation
+
+**Why Now:** SMS working perfectly, client feedback received, ready to expand.
+
+### V2.2 - Voice & Advanced (4-6 Weeks After V2.1)
+**Channels:** SMS + WhatsApp + Email + Voice
+**Launch:** April 2026
+
+New Features:
+- Voice calling integration (Retell AI / VAPI)
+- Call recording & transcription
+- Sophie analyzes voice calls
+- Sophie voice interface (talk to her about insights)
+- A/B testing framework (test prompts)
 - Advanced reporting (PDF exports)
-- Email campaigns
 
-### V2.2 (Month 3)
-- Multi-client fully operational
-- White-label branding
-- Billing/subscriptions
-- Client portal
+**Why Now:** All messaging channels proven, voice is premium upsell.
 
-### V2.3 (Month 4+)
+### V2.3 - Scale & Enterprise (Ongoing)
+**Launch:** June 2026+
+
+Enterprise Features:
+- White-label branding (full customization)
+- Custom domains per client
+- Billing/subscriptions (Stripe integration)
 - Predictive lead scoring
-- A/B testing framework
-- Automatic lesson creation
-- CRM integrations (HubSpot, etc.)
+- Multi-language support
+- CRM integrations (HubSpot, Salesforce, etc.)
+- Native mobile apps (iOS/Android) if PWA insufficient
 
 ---
 

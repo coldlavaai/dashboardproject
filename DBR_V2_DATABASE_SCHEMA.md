@@ -133,8 +133,13 @@ CREATE TABLE datasets (
   campaign_start_date TIMESTAMPTZ,
   campaign_end_date TIMESTAMPTZ,
 
-  -- n8n Workflow Override (if different from client default)
-  n8n_workflow_id TEXT,
+  -- Campaign Settings (detailed)
+  campaign_settings_id UUID REFERENCES campaign_settings(id),
+
+  -- Archiving
+  auto_archive_after_days INTEGER DEFAULT 28,
+  archived BOOLEAN DEFAULT FALSE,
+  archived_at TIMESTAMPTZ,
 
   CONSTRAINT datasets_name_client_unique UNIQUE(client_id, name)
 );
@@ -149,6 +154,102 @@ ALTER TABLE datasets ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view own datasets"
   ON datasets FOR SELECT
+  USING (client_id IN (
+    SELECT client_id FROM users WHERE user_id = auth.uid()
+  ));
+```
+
+---
+
+### 2b. **campaign_settings** (Detailed Campaign Configuration)
+
+```sql
+CREATE TABLE campaign_settings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+  -- Ownership
+  client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+
+  -- Name for reusability
+  name TEXT, -- "Aggressive Solar DBR" or "Gentle Nurture Campaign"
+  description TEXT,
+
+  -- M1/M2/M3 Messages
+  m1_message TEXT NOT NULL,
+  m2_message TEXT,
+  m3_message TEXT,
+  m2_delay_hours INTEGER DEFAULT 48, -- Send M2 after X hours if no reply
+  m3_delay_hours INTEGER DEFAULT 72, -- Send M3 after X hours if no M2 reply
+
+  -- Delay Logic
+  delay_respect_sending_hours BOOLEAN DEFAULT TRUE, -- Wait for next sending window or send exactly after delay
+  delay_type TEXT DEFAULT 'real_hours', -- 'real_hours', 'business_hours'
+
+  -- Sending Windows
+  sending_enabled BOOLEAN DEFAULT TRUE,
+  sending_hours_start TIME, -- e.g., '09:00'
+  sending_hours_end TIME, -- e.g., '17:00'
+  sending_days JSONB DEFAULT '["monday","tuesday","wednesday","thursday","friday"]',
+  sending_timezone TEXT DEFAULT 'Europe/London',
+
+  -- Rate Limiting
+  messages_per_minute INTEGER DEFAULT 1,
+  messages_per_hour INTEGER DEFAULT 30,
+  messages_per_day INTEGER DEFAULT 500,
+
+  -- AI Response Settings
+  ai_response_enabled BOOLEAN DEFAULT TRUE,
+  ai_response_delay_seconds INTEGER DEFAULT 60, -- Wait X seconds before responding
+  ai_response_delay_random BOOLEAN DEFAULT FALSE, -- Add 0-300s random delay for human feel
+  ai_multiple_messages_wait_seconds INTEGER DEFAULT 60, -- Wait to group multiple inbound messages
+
+  -- Weekend/Holiday Behavior
+  respond_to_inbound_24_7 BOOLEAN DEFAULT TRUE, -- Always respond to replies, ignore sending hours
+  respect_schedule_strictly BOOLEAN DEFAULT FALSE, -- Even inbound must wait for sending hours
+
+  -- Conversation Timeout
+  silence_timeout_days INTEGER DEFAULT 28, -- Archive conversation after X days of silence
+  silence_nudge_enabled BOOLEAN DEFAULT FALSE, -- Send follow-up after silence
+  silence_nudge_days INTEGER DEFAULT 7,
+  silence_nudge_message TEXT,
+
+  -- Duplicate Lead Handling
+  duplicate_action TEXT DEFAULT 'flag', -- 'flag', 'skip', 'merge', 'keep_both'
+
+  -- Hot Lead Actions
+  hot_lead_notification BOOLEAN DEFAULT TRUE,
+  hot_lead_auto_assign BOOLEAN DEFAULT FALSE,
+  hot_lead_assignment_rule TEXT DEFAULT 'round_robin', -- 'round_robin', 'territory', 'manual'
+
+  -- Status Change Rules
+  auto_status_updates BOOLEAN DEFAULT TRUE, -- AI sets status automatically
+
+  -- Phone Number Validation
+  auto_normalize_uk_numbers BOOLEAN DEFAULT TRUE,
+  allow_international BOOLEAN DEFAULT FALSE,
+
+  -- Required Fields (for CSV import)
+  required_fields JSONB DEFAULT '["first_name", "last_name", "phone_number", "email"]',
+
+  -- Integration Settings
+  twilio_number TEXT, -- Override client default
+  cal_booking_link TEXT, -- Override client default
+
+  -- Is Template (for reuse)
+  is_template BOOLEAN DEFAULT FALSE
+);
+
+-- Indexes
+CREATE INDEX idx_campaign_settings_client_id ON campaign_settings(client_id);
+CREATE INDEX idx_campaign_settings_is_template ON campaign_settings(is_template);
+
+-- Row Level Security
+ALTER TABLE campaign_settings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own campaign settings"
+  ON campaign_settings FOR SELECT
   USING (client_id IN (
     SELECT client_id FROM users WHERE user_id = auth.uid()
   ));
@@ -423,7 +524,7 @@ CREATE POLICY "Users can view own lessons"
 
 ---
 
-### 7. **prompts** (AI Agent Prompts)
+### 7. **prompts** (AI Agent Prompts - Enhanced)
 
 ```sql
 CREATE TABLE prompts (
@@ -433,39 +534,69 @@ CREATE TABLE prompts (
 
   -- Ownership
   client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+  dataset_id UUID REFERENCES datasets(id) ON DELETE CASCADE, -- Dataset-specific prompts
 
   -- Prompt Details
   name TEXT NOT NULL,
-  prompt_type TEXT NOT NULL, -- 'master', 'm1', 'm2', 'm3', 'reply', 'nurture'
+  description TEXT,
 
-  -- The Actual Prompt
-  system_prompt TEXT NOT NULL,
-  user_prompt_template TEXT, -- Template with variables {first_name}, {postcode}
+  -- Structured Prompt Content (labeled sections)
+  prompt_structure JSONB NOT NULL,
+  -- Example structure:
+  -- {
+  --   "context": { "content": "...", "source": "wizard", "why": "..." },
+  --   "goal": { "content": "...", "source": "wizard", "why": "..." },
+  --   "tone": { "content": "...", "source": "wizard", "why": "..." },
+  --   "knowledge": { "content": "...", "source": "lesson:uuid", "why": "Lesson #3..." },
+  --   "objections": { "content": "...", "source": "manual", "why": "..." },
+  --   "boundaries": { "content": "...", "source": "lesson:uuid", "why": "Lesson #1..." }
+  -- }
+
+  -- Full Compiled Prompt (for AI API calls)
+  compiled_prompt TEXT NOT NULL,
+
+  -- Creation Method
+  created_from TEXT DEFAULT 'wizard', -- 'wizard', 'template', 'manual', 'copied'
+  template_id UUID REFERENCES prompt_templates(id), -- If created from template
+  copied_from_prompt_id UUID REFERENCES prompts(id), -- If copied from another prompt
+
+  -- Wizard Answers (if created via wizard)
+  wizard_answers JSONB,
 
   -- Lessons Integration
-  includes_lessons BOOLEAN DEFAULT TRUE,
-  lessons_context TEXT, -- Auto-generated from lessons table
+  applied_lessons UUID[], -- Array of lesson IDs applied to this prompt
+  lessons_count INTEGER DEFAULT 0,
+  manual_edits_count INTEGER DEFAULT 0,
 
   -- Version Control
-  version INTEGER DEFAULT 1,
-  is_active BOOLEAN DEFAULT TRUE,
+  version TEXT DEFAULT '1.0', -- Semantic versioning
+  version_number INTEGER DEFAULT 1,
+  status TEXT DEFAULT 'draft', -- draft, live, archived
+  is_live BOOLEAN DEFAULT FALSE,
   previous_version_id UUID REFERENCES prompts(id),
 
-  -- n8n Integration
-  pushed_to_n8n BOOLEAN DEFAULT FALSE,
-  pushed_to_n8n_at TIMESTAMPTZ,
-  n8n_node_id TEXT, -- Which n8n node uses this prompt
+  -- Change Tracking
+  changes_summary TEXT, -- Human-readable summary of what changed
+  change_reason TEXT, -- Why this version was created
 
-  -- Testing
-  test_results JSONB, -- Results from A/B testing
-  performance_score DECIMAL(3,2)
+  -- Performance Metrics
+  conversations_count INTEGER DEFAULT 0, -- How many conversations used this prompt
+  booking_rate DECIMAL(5,4), -- Success rate (0.0000 to 1.0000)
+  avg_sentiment_score DECIMAL(3,2),
+  performance_vs_previous DECIMAL(5,4), -- Improvement over previous version
+
+  -- Deployed At
+  deployed_at TIMESTAMPTZ,
+  deployed_by UUID REFERENCES auth.users(id)
 );
 
 -- Indexes
 CREATE INDEX idx_prompts_client_id ON prompts(client_id);
-CREATE INDEX idx_prompts_prompt_type ON prompts(prompt_type);
-CREATE INDEX idx_prompts_is_active ON prompts(is_active);
-CREATE INDEX idx_prompts_version ON prompts(version DESC);
+CREATE INDEX idx_prompts_dataset_id ON prompts(dataset_id);
+CREATE INDEX idx_prompts_status ON prompts(status);
+CREATE INDEX idx_prompts_is_live ON prompts(is_live);
+CREATE INDEX idx_prompts_version_number ON prompts(version_number DESC);
+CREATE INDEX idx_prompts_template_id ON prompts(template_id);
 
 -- Row Level Security
 ALTER TABLE prompts ENABLE ROW LEVEL SECURITY;
@@ -475,6 +606,99 @@ CREATE POLICY "Users can view own prompts"
   USING (client_id IN (
     SELECT client_id FROM users WHERE user_id = auth.uid()
   ));
+```
+
+---
+
+### 7b. **prompt_templates** (Template Library)
+
+```sql
+CREATE TABLE prompt_templates (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+  -- Template Info
+  name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  category TEXT NOT NULL, -- 'solar_dbr_recent', 'solar_dbr_old', 'solar_quote_followup', 'general'
+
+  -- Template Content (same structure as prompts)
+  template_structure JSONB NOT NULL,
+
+  -- Metadata
+  industry TEXT DEFAULT 'solar',
+  use_case TEXT, -- 'recent_leads', 'old_database', 'quote_followup'
+  best_for TEXT, -- "Leads who inquired within last 3 months"
+
+  -- Pre-loaded Lessons
+  included_lessons_count INTEGER DEFAULT 0,
+  success_rate DECIMAL(3,2), -- Historical performance
+
+  -- Wizard Defaults
+  default_wizard_answers JSONB, -- Pre-fill wizard based on template
+
+  -- Usage Tracking
+  times_used INTEGER DEFAULT 0,
+
+  -- Status
+  is_active BOOLEAN DEFAULT TRUE,
+  is_system_template BOOLEAN DEFAULT TRUE -- System vs user-created
+);
+
+-- Indexes
+CREATE INDEX idx_prompt_templates_category ON prompt_templates(category);
+CREATE INDEX idx_prompt_templates_is_active ON prompt_templates(is_active);
+CREATE INDEX idx_prompt_templates_is_system ON prompt_templates(is_system_template);
+```
+
+---
+
+### 7c. **prompt_versions** (Version History Tracking)
+
+```sql
+CREATE TABLE prompt_versions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+
+  -- Link to current prompt
+  prompt_id UUID NOT NULL REFERENCES prompts(id) ON DELETE CASCADE,
+  client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+
+  -- Version Info
+  version TEXT NOT NULL,
+  version_number INTEGER NOT NULL,
+
+  -- What Changed
+  changes JSONB NOT NULL,
+  -- Example:
+  -- {
+  --   "type": "lesson_applied",
+  --   "lesson_id": "uuid",
+  --   "lesson_title": "Don't use emojis",
+  --   "sections_changed": ["boundaries", "tone"],
+  --   "before": { "boundaries": "..." },
+  --   "after": { "boundaries": "..." }
+  -- }
+
+  changes_summary TEXT NOT NULL,
+
+  -- Performance Before/After
+  performance_before JSONB,
+  performance_after JSONB,
+
+  -- Applied Lesson (if applicable)
+  lesson_applied_id UUID REFERENCES lessons(id),
+
+  -- Created By
+  created_by UUID REFERENCES auth.users(id),
+  created_by_type TEXT DEFAULT 'user' -- 'user', 'sophie', 'system'
+);
+
+-- Indexes
+CREATE INDEX idx_prompt_versions_prompt_id ON prompt_versions(prompt_id);
+CREATE INDEX idx_prompt_versions_created_at ON prompt_versions(created_at DESC);
+CREATE INDEX idx_prompt_versions_lesson_applied ON prompt_versions(lesson_applied_id);
 ```
 
 ---
@@ -782,9 +1006,26 @@ FOR EACH ROW EXECUTE FUNCTION update_dataset_stats();
 
 ---
 
-**Total Tables:** 10 core tables
-**Total Relationships:** 15+ foreign keys
+**Total Tables:** 13 core tables
+- clients
+- datasets
+- campaign_settings (NEW)
+- leads
+- conversations
+- messages
+- lessons
+- prompts (ENHANCED)
+- prompt_templates (NEW)
+- prompt_versions (NEW)
+- users
+- sophie_insights
+- uploads
+
+**Total Relationships:** 25+ foreign keys
 **Scalability:** Handles 10,000+ clients, millions of leads
-**Multi-tenant:** ✅ Fully isolated
+**Multi-tenant:** ✅ Fully isolated via Row Level Security
 **Real-time:** ✅ Supabase real-time subscriptions
+**Campaign Management:** ✅ Fully customizable per dataset
+**Prompt System:** ✅ Wizard, templates, version tracking, Sophie integration
+**Foundation:** ✅ Multi-channel ready (SMS, WhatsApp, Email, Voice)
 
