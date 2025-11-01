@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/lib/auth/actions'
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser()
@@ -13,6 +13,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { id } = await params
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
@@ -36,7 +37,7 @@ export async function GET(
     const { data: dataset } = await (supabase
       .from('datasets') as any)
       .select('id, client_id')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('client_id', userClient.client_id)
       .single()
 
@@ -48,7 +49,7 @@ export async function GET(
     let query = (supabase
       .from('leads') as any)
       .select('*', { count: 'exact' })
-      .eq('dataset_id', params.id)
+      .eq('dataset_id', id)
       .order('created_at', { ascending: false })
 
     // Apply search filter

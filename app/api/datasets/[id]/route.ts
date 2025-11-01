@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/lib/auth/actions'
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser()
@@ -13,6 +13,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const { id } = await params
     const supabase = await createClient()
 
     // Get user's client
@@ -41,7 +42,7 @@ export async function GET(
         updated_at,
         column_mapping
       `)
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('client_id', userClient.client_id)
       .single()
 
