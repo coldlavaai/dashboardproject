@@ -6,14 +6,21 @@ import { createClient as createServerClient } from '@/lib/supabase/server'
 export default async function AdminDashboardPage() {
   const user = await getCurrentUser()
 
+  console.log('[ADMIN DEBUG] User object:', JSON.stringify(user, null, 2))
+  console.log('[ADMIN DEBUG] Profile:', user?.profile)
+  console.log('[ADMIN DEBUG] is_super_admin value:', user?.profile?.is_super_admin)
+
   if (!user) {
     redirect('/login')
   }
 
   // Check if user is super admin
   if (!user.profile?.is_super_admin) {
+    console.log('[ADMIN DEBUG] Redirecting to dashboard - not super admin')
     redirect('/dashboard')
   }
+
+  console.log('[ADMIN DEBUG] Super admin check passed!')
 
   const supabase = await createServerClient()
 
