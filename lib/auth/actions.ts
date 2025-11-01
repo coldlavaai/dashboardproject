@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createServerClient } from '../supabase/server'
+import { createClient as createServerClient } from '../supabase/server'
 
 /**
  * Sign up a new user with email and password
@@ -30,8 +30,8 @@ export async function signUp(formData: FormData) {
 
   // Create user record in our users table
   if (data.user) {
-    const { error: userError } = await supabase
-      .from('users')
+    const { error: userError } = await (supabase
+      .from('users') as any)
       .insert({
         id: data.user.id,
         email: data.user.email!,
@@ -98,11 +98,7 @@ export async function signInWithMagicLink(formData: FormData) {
 export async function signOut() {
   const supabase = await createServerClient()
 
-  const { error } = await supabase.auth.signOut()
-
-  if (error) {
-    return { error: error.message }
-  }
+  await supabase.auth.signOut()
 
   revalidatePath('/', 'layout')
   redirect('/login')
@@ -134,14 +130,21 @@ export async function getCurrentUser() {
   if (!user) return null
 
   // Get user profile from our users table
-  const { data: profile } = await supabase
-    .from('users')
+  const { data: profile } = await (supabase
+    .from('users') as any)
     .select('*')
     .eq('id', user.id)
     .single()
 
   return {
     ...user,
-    profile,
+    profile: profile as {
+      id: string
+      email: string
+      full_name: string | null
+      role: string
+      created_at: string
+      updated_at: string
+    } | null,
   }
 }
