@@ -36,35 +36,35 @@ All committed to GitHub: https://github.com/coldlavaai/dashboardproject
    - Quick start guide
    - Roadmap
 
-2. **`DBR_V2_DATABASE_SCHEMA.md`** (23,262 characters)
+2. **`DASHBOARD_DATABASE_SCHEMA.md`** (23,262 characters)
    - 10 core tables designed
    - All relationships mapped
    - Row Level Security policies
    - Multi-tenant isolation
    - Example queries
 
-3. **`DBR_V2_COMPONENT_ARCHITECTURE.md`** (26,973 characters)
+3. **`DASHBOARD_COMPONENT_ARCHITECTURE.md`** (26,973 characters)
    - 60+ UI components specified
    - Component tree hierarchy
    - State management strategy
    - Real-time subscriptions
    - Design system
 
-4. **`DBR_V2_SOPHIE_INTELLIGENCE.md`** (40,744 characters)
+4. **`DASHBOARD_SOPHIE_INTELLIGENCE.md`** (40,744 characters)
    - Sophie's analysis engine
    - Learning system (Agree/Disagree/Teach)
    - Lessons library structure
    - Prompt evolution system
    - Pattern recognition
 
-5. **`DBR_V2_API_ROUTES.md`** (31,055 characters)
+5. **`DASHBOARD_API_ROUTES.md`** (31,055 characters)
    - 60+ API endpoints documented
    - All data flows mapped
    - Webhook integrations
    - Cron jobs specified
    - Error handling
 
-6. **`DBR_V2_BUILD_PLAN.md`** (25,817 characters)
+6. **`DASHBOARD_BUILD_PLAN.md`** (25,817 characters)
    - 4-week timeline (28 days)
    - Day-by-day breakdown
    - Each day has morning/afternoon tasks
@@ -384,25 +384,25 @@ The 4-week plan is comprehensive but achievable. If we move faster, great. If we
    - Get the big picture overview
    - Understand the vision
 
-2. **Then read:** `DBR_V2_DATABASE_SCHEMA.md`
+2. **Then read:** `DASHBOARD_DATABASE_SCHEMA.md`
    - See how data is structured
    - Understand multi-tenant architecture
    - Review conversation tracking
 
-3. **Then read:** `DBR_V2_SOPHIE_INTELLIGENCE.md`
+3. **Then read:** `DASHBOARD_SOPHIE_INTELLIGENCE.md`
    - Understand Sophie's learning system
    - See how insights → lessons → prompts works
    - Review the "Agree/Disagree/Teach" flow
 
-4. **Skim:** `DBR_V2_COMPONENT_ARCHITECTURE.md`
+4. **Skim:** `DASHBOARD_COMPONENT_ARCHITECTURE.md`
    - Get a feel for the UI
    - See major components
 
-5. **Skim:** `DBR_V2_API_ROUTES.md`
+5. **Skim:** `DASHBOARD_API_ROUTES.md`
    - Understand data flows
    - See all the endpoints we'll build
 
-6. **Review:** `DBR_V2_BUILD_PLAN.md`
+6. **Review:** `DASHBOARD_BUILD_PLAN.md`
    - See the day-by-day breakdown
    - Think about timeline
    - Note any concerns
@@ -463,15 +463,15 @@ https://github.com/coldlavaai/dashboardproject
 
 **All architecture docs committed:**
 - README.md
-- DBR_V2_DATABASE_SCHEMA.md
-- DBR_V2_COMPONENT_ARCHITECTURE.md
-- DBR_V2_SOPHIE_INTELLIGENCE.md
-- DBR_V2_API_ROUTES.md
-- DBR_V2_BUILD_PLAN.md
+- DASHBOARD_DATABASE_SCHEMA.md
+- DASHBOARD_COMPONENT_ARCHITECTURE.md
+- DASHBOARD_SOPHIE_INTELLIGENCE.md
+- DASHBOARD_API_ROUTES.md
+- DASHBOARD_BUILD_PLAN.md
 
 ### **Local Files**
 `~/Documents/dashboardproject/` - Project directory
-`~/Documents/DBR_V2_*.md` - Architecture docs (copies)
+`~/Documents/dashboardproject/docs/` - Architecture docs
 
 ---
 
