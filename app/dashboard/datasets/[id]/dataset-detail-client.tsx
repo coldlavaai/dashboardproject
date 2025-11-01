@@ -8,6 +8,7 @@ import { ArrowLeft, Upload, Users, MessageSquare, TrendingUp, Target, Database }
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
 import { UploadLeadsModal } from '@/components/upload-leads-modal'
+import { LeadsTable } from '@/components/leads-table'
 
 interface Dataset {
   id: string
@@ -213,7 +214,7 @@ export function DatasetDetailClient({ datasetId }: DatasetDetailClientProps) {
           </CardContent>
         </Card>
       ) : (
-        /* Leads Table - Coming in Day 5+ */
+        /* Leads Table */
         <Card>
           <CardHeader>
             <CardTitle>Leads</CardTitle>
@@ -222,9 +223,7 @@ export function DatasetDetailClient({ datasetId }: DatasetDetailClientProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-12 text-muted-foreground">
-              Leads table coming soon...
-            </div>
+            <LeadsTable datasetId={datasetId} />
           </CardContent>
         </Card>
       )}
