@@ -9,7 +9,7 @@ This directory contains the database schema and migrations for DBR V2.
 1. Go to [https://supabase.com](https://supabase.com)
 2. Click "New Project"
 3. Choose organization: **Cold Lava** (or create new)
-4. Project name: **dbr-dashboard-v2**
+4. Project name: **dashboardproject**
 5. Database password: (save this securely!)
 6. Region: **UK West (London)**
 7. Pricing plan: **Free** (to start)
