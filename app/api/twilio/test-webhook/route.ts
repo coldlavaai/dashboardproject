@@ -1,0 +1,13 @@
+import { NextResponse } from 'next/server'
+
+export async function POST(request: Request) {
+  console.log('WEBHOOK CALLED!')
+
+  return new NextResponse(
+    '<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
+    {
+      status: 200,
+      headers: { 'Content-Type': 'text/xml' },
+    }
+  )
+}
