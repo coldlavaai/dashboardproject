@@ -163,8 +163,8 @@ Attempted multiple methods to execute SQL:
 **When:** After Step 1 completes
 **Command:**
 ```bash
-export NEXT_PUBLIC_SUPABASE_URL=https://ngkjfehvoeymjoqppthy.supabase.co
-export SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5na2pmZWh2b2V5bWpvcXBwdGh5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTk5NDE2OSwiZXhwIjoyMDc3NTcwMTY5fQ.9bNuiD2qLGhYupewQqNXSvWqI1q3GLYoq1P7TItemRw
+# Load credentials from .env.local
+source .env.local
 npx tsx scripts/create-test-user.ts
 ```
 **Result:** Creates otatler@gmail.com with password admin123, linked to Greenstar Solar
