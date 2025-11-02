@@ -16,8 +16,9 @@ interface Dataset {
   description: string | null
   source: string
   total_leads: number
-  leads_contacted: number
-  leads_converted: number
+  active_leads: number
+  hot_leads: number
+  converted_leads: number
   created_at: string
   updated_at: string
   column_mapping: any
@@ -94,11 +95,11 @@ export function DatasetDetailClient({ datasetId }: DatasetDetailClientProps) {
   }
 
   const conversionRate = dataset.total_leads > 0
-    ? ((dataset.leads_converted / dataset.total_leads) * 100).toFixed(1)
+    ? ((dataset.converted_leads / dataset.total_leads) * 100).toFixed(1)
     : '0.0'
 
   const contactRate = dataset.total_leads > 0
-    ? ((dataset.leads_contacted / dataset.total_leads) * 100).toFixed(1)
+    ? ((dataset.active_leads / dataset.total_leads) * 100).toFixed(1)
     : '0.0'
 
   return (
@@ -147,13 +148,26 @@ export function DatasetDetailClient({ datasetId }: DatasetDetailClientProps) {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Contacted</CardTitle>
+            <CardTitle className="text-sm font-medium">Active</CardTitle>
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dataset.leads_contacted}</div>
+            <div className="text-2xl font-bold">{dataset.active_leads}</div>
             <p className="text-xs text-muted-foreground">
-              {contactRate}% contact rate
+              {contactRate}% of total
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Hot Leads</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{dataset.hot_leads}</div>
+            <p className="text-xs text-muted-foreground">
+              high-value prospects
             </p>
           </CardContent>
         </Card>
@@ -161,27 +175,12 @@ export function DatasetDetailClient({ datasetId }: DatasetDetailClientProps) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Converted</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dataset.leads_converted}</div>
-            <p className="text-xs text-muted-foreground">
-              {conversionRate}% conversion rate
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Remaining</CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {dataset.total_leads - dataset.leads_contacted}
-            </div>
+            <div className="text-2xl font-bold">{dataset.converted_leads}</div>
             <p className="text-xs text-muted-foreground">
-              leads to contact
+              {conversionRate}% conversion rate
             </p>
           </CardContent>
         </Card>

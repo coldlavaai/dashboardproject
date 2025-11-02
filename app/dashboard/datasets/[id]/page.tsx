@@ -3,9 +3,9 @@ import { getCurrentUser } from '@/lib/auth/actions'
 import { DatasetDetailClient } from './dataset-detail-client'
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default async function DatasetDetailPage({ params }: PageProps) {
@@ -15,5 +15,6 @@ export default async function DatasetDetailPage({ params }: PageProps) {
     redirect('/login')
   }
 
-  return <DatasetDetailClient datasetId={params.id} />
+  const { id } = await params
+  return <DatasetDetailClient datasetId={id} />
 }
