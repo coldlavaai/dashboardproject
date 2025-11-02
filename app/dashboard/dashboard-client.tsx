@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Users, TrendingUp, Phone, Target, MessageSquare, Zap } from 'lucide-react'
+import { Users, TrendingUp, Phone, Target, MessageSquare, Zap, ChevronDown, ChevronUp } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface DashboardStats {
   totalLeads: number
@@ -58,6 +59,23 @@ export function DashboardClient() {
   const [selectedDataset, setSelectedDataset] = useState<string>('all')
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
+  const [expandedBuckets, setExpandedBuckets] = useState<Record<string, boolean>>({
+    CONVERTED: false,
+    CALL_BOOKED: false,
+    HOT: false,
+    WARM: false,
+    COLD: false,
+    CONTACTED: false,
+    ALREADY_INSTALLED: false,
+    REMOVED: false,
+  })
+
+  const toggleBucket = (bucketKey: string) => {
+    setExpandedBuckets(prev => ({
+      ...prev,
+      [bucketKey]: !prev[bucketKey]
+    }))
+  }
 
   useEffect(() => {
     fetchData()
@@ -149,6 +167,19 @@ export function DashboardClient() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Messages Sent</CardTitle>
+            <MessageSquare className="h-4 w-4 text-purple-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">{stats.messagesSent}</div>
+            <p className="text-xs text-muted-foreground">
+              Total outbound messages
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">HOT Leads</CardTitle>
             <TrendingUp className="h-4 w-4 text-red-500" />
           </CardHeader>
@@ -226,99 +257,98 @@ export function DashboardClient() {
         </Card>
       </div>
 
-      {/* Status Buckets */}
+      {/* Status Buckets - Grid Layout (Always show all buckets, even if empty) */}
       {loading ? (
         <div className="text-center py-12 text-muted-foreground">Loading leads...</div>
-      ) : leads.length === 0 ? (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center py-12">
-              <p className="text-muted-foreground mb-4">No leads found in selected dataset{selectedDataset !== 'all' ? '' : 's'}</p>
-              <p className="text-sm text-muted-foreground">Upload a CSV to get started</p>
-            </div>
-          </CardContent>
-        </Card>
       ) : (
-        <div className="space-y-6">
-          {/* CONVERTED Section */}
-          {leadsByStatus.CONVERTED.length > 0 && (
-            <StatusBucket
-              title="Converted"
-              count={leadsByStatus.CONVERTED.length}
-              leads={leadsByStatus.CONVERTED}
-              color="purple"
-            />
-          )}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <StatusBucket
+            bucketKey="CONVERTED"
+            title="✨ Converted"
+            description="Successfully converted to customers"
+            count={leadsByStatus.CONVERTED.length}
+            leads={leadsByStatus.CONVERTED}
+            color="purple"
+            expanded={expandedBuckets.CONVERTED}
+            onToggle={() => toggleBucket('CONVERTED')}
+          />
 
-          {/* CALL BOOKED Section */}
-          {leadsByStatus.CALL_BOOKED.length > 0 && (
-            <StatusBucket
-              title="Call Booked"
-              count={leadsByStatus.CALL_BOOKED.length}
-              leads={leadsByStatus.CALL_BOOKED}
-              color="green"
-            />
-          )}
+          <StatusBucket
+            bucketKey="CALL_BOOKED"
+            title="📞 Call Booked"
+            description="Call or consultation scheduled"
+            count={leadsByStatus.CALL_BOOKED.length}
+            leads={leadsByStatus.CALL_BOOKED}
+            color="green"
+            expanded={expandedBuckets.CALL_BOOKED}
+            onToggle={() => toggleBucket('CALL_BOOKED')}
+          />
 
-          {/* HOT Section */}
-          {leadsByStatus.HOT.length > 0 && (
-            <StatusBucket
-              title="HOT Leads"
-              count={leadsByStatus.HOT.length}
-              leads={leadsByStatus.HOT}
-              color="red"
-            />
-          )}
+          <StatusBucket
+            bucketKey="HOT"
+            title="🔥 HOT Leads"
+            description="Highly engaged, ready to move forward"
+            count={leadsByStatus.HOT.length}
+            leads={leadsByStatus.HOT}
+            color="red"
+            expanded={expandedBuckets.HOT}
+            onToggle={() => toggleBucket('HOT')}
+          />
 
-          {/* WARM Section */}
-          {leadsByStatus.WARM.length > 0 && (
-            <StatusBucket
-              title="WARM Leads"
-              count={leadsByStatus.WARM.length}
-              leads={leadsByStatus.WARM}
-              color="orange"
-            />
-          )}
+          <StatusBucket
+            bucketKey="WARM"
+            title="🌡️ WARM Leads"
+            description="Showing interest and engagement"
+            count={leadsByStatus.WARM.length}
+            leads={leadsByStatus.WARM}
+            color="orange"
+            expanded={expandedBuckets.WARM}
+            onToggle={() => toggleBucket('WARM')}
+          />
 
-          {/* COLD Section */}
-          {leadsByStatus.COLD.length > 0 && (
-            <StatusBucket
-              title="COLD Leads"
-              count={leadsByStatus.COLD.length}
-              leads={leadsByStatus.COLD}
-              color="blue"
-            />
-          )}
+          <StatusBucket
+            bucketKey="COLD"
+            title="❄️ COLD Leads"
+            description="Not interested or negative response"
+            count={leadsByStatus.COLD.length}
+            leads={leadsByStatus.COLD}
+            color="blue"
+            expanded={expandedBuckets.COLD}
+            onToggle={() => toggleBucket('COLD')}
+          />
 
-          {/* CONTACTED Section */}
-          {leadsByStatus.CONTACTED.length > 0 && (
-            <StatusBucket
-              title="Contacted (No Reply)"
-              count={leadsByStatus.CONTACTED.length}
-              leads={leadsByStatus.CONTACTED}
-              color="slate"
-            />
-          )}
+          <StatusBucket
+            bucketKey="CONTACTED"
+            title="📨 Contacted (No Reply)"
+            description="Messages sent, awaiting response"
+            count={leadsByStatus.CONTACTED.length}
+            leads={leadsByStatus.CONTACTED}
+            color="slate"
+            expanded={expandedBuckets.CONTACTED}
+            onToggle={() => toggleBucket('CONTACTED')}
+          />
 
-          {/* ALREADY INSTALLED Section */}
-          {leadsByStatus.ALREADY_INSTALLED.length > 0 && (
-            <StatusBucket
-              title="Already Installed (Remarket Later)"
-              count={leadsByStatus.ALREADY_INSTALLED.length}
-              leads={leadsByStatus.ALREADY_INSTALLED}
-              color="slate"
-            />
-          )}
+          <StatusBucket
+            bucketKey="ALREADY_INSTALLED"
+            title="✅ Already Installed"
+            description="Already have solar panels installed"
+            count={leadsByStatus.ALREADY_INSTALLED.length}
+            leads={leadsByStatus.ALREADY_INSTALLED}
+            color="slate"
+            expanded={expandedBuckets.ALREADY_INSTALLED}
+            onToggle={() => toggleBucket('ALREADY_INSTALLED')}
+          />
 
-          {/* REMOVED Section */}
-          {leadsByStatus.REMOVED.length > 0 && (
-            <StatusBucket
-              title="Removed / Opted Out"
-              count={leadsByStatus.REMOVED.length}
-              leads={leadsByStatus.REMOVED}
-              color="gray"
-            />
-          )}
+          <StatusBucket
+            bucketKey="REMOVED"
+            title="🚫 Removed"
+            description="Removed from campaign"
+            count={leadsByStatus.REMOVED.length}
+            leads={leadsByStatus.REMOVED}
+            color="gray"
+            expanded={expandedBuckets.REMOVED}
+            onToggle={() => toggleBucket('REMOVED')}
+          />
         </div>
       )}
     </div>
@@ -327,13 +357,17 @@ export function DashboardClient() {
 
 // StatusBucket Component
 interface StatusBucketProps {
+  bucketKey: string
   title: string
+  description: string
   count: number
   leads: Lead[]
   color: 'red' | 'orange' | 'blue' | 'green' | 'purple' | 'gray' | 'slate'
+  expanded: boolean
+  onToggle: () => void
 }
 
-function StatusBucket({ title, count, leads, color }: StatusBucketProps) {
+function StatusBucket({ bucketKey, title, description, count, leads, color, expanded, onToggle }: StatusBucketProps) {
   const [expandedLeads, setExpandedLeads] = useState<Set<string>>(new Set())
 
   const toggleLead = (leadId: string) => {
@@ -383,19 +417,55 @@ function StatusBucket({ title, count, leads, color }: StatusBucketProps) {
     }
   }
 
+  const gradientClasses = {
+    red: 'from-orange-400 to-red-500',
+    orange: 'from-yellow-400 to-orange-400',
+    blue: 'from-blue-600 to-cyan-700',
+    green: 'from-purple-400 to-pink-500',
+    purple: 'from-emerald-400 to-teal-500',
+    gray: 'from-gray-400 to-slate-500',
+    slate: 'from-blue-400 to-cyan-500',
+  }
+
   return (
-    <Card className={`border-l-4 ${colorClasses[color]}`}>
-      <CardHeader>
+    <Card className={`border-l-4 ${colorClasses[color]} overflow-hidden`}>
+      {/* Bucket Header - Clickable to expand/collapse */}
+      <button
+        onClick={onToggle}
+        className="w-full p-5 text-left hover:bg-muted/50 transition-colors"
+      >
         <div className="flex items-center justify-between">
-          <CardTitle className="text-xl">{title}</CardTitle>
-          <span className="text-sm font-medium text-muted-foreground">
-            {count} lead{count !== 1 ? 's' : ''}
-          </span>
+          <div className="flex-1">
+            <h4 className={`text-lg font-bold bg-gradient-to-r ${gradientClasses[color]} bg-clip-text text-transparent mb-1`}>
+              {title}
+            </h4>
+            <p className="text-sm text-muted-foreground">{description}</p>
+            {count > 0 && (
+              <p className="text-xs text-primary mt-1">
+                {count} lead{count !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
+          <div className="ml-4">
+            {expanded ? (
+              <ChevronUp className="w-6 h-6 text-primary" />
+            ) : (
+              <ChevronDown className="w-6 h-6 text-muted-foreground" />
+            )}
+          </div>
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {leads.map((lead) => {
+      </button>
+
+      {/* Bucket Content - Only show when expanded */}
+      {expanded && (
+        <CardContent className="pt-0 pb-5">
+          {leads.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No {bucketKey.toLowerCase()} leads found</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {leads.map((lead) => {
             const isExpanded = expandedLeads.has(lead.id)
             return (
               <div
@@ -500,8 +570,10 @@ function StatusBucket({ title, count, leads, color }: StatusBucketProps) {
               </div>
             )
           })}
-        </div>
-      </CardContent>
+            </div>
+          )}
+        </CardContent>
+      )}
     </Card>
   )
 }
