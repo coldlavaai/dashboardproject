@@ -55,29 +55,38 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
 
   const handleDetailsSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('handleDetailsSubmit - Starting')
     setLoading(true)
     setError(null)
 
     try {
+      console.log('Creating dataset with:', { name, description })
       const response = await fetch('/api/datasets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, description }),
       })
 
+      console.log('Response status:', response.status)
+
       if (!response.ok) {
         const errorData = await response.json()
+        console.error('API error:', errorData)
         throw new Error(errorData.error || 'Failed to create dataset')
       }
 
       const { dataset } = await response.json()
+      console.log('Dataset created:', dataset.id)
+      console.log('Advancing to upload step')
       setDatasetId(dataset.id)
       setStep('upload')
+      console.log('Step should now be: upload')
     } catch (err: any) {
       console.error('Error creating dataset:', err)
       setError(err.message || 'Failed to create dataset. Please try again.')
     } finally {
       setLoading(false)
+      console.log('handleDetailsSubmit - Complete')
     }
   }
 
