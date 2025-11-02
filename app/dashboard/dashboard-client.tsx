@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Users, TrendingUp, Phone, Target, MessageSquare, Zap, ChevronDown, ChevronUp } from 'lucide-react'
+import { Users, TrendingUp, Phone, Target, MessageSquare, Zap, ChevronDown, ChevronUp, Send, Edit } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SmsChatModal } from '@/components/sms-chat-modal'
 
 interface DashboardStats {
   totalLeads: number
@@ -69,12 +70,39 @@ export function DashboardClient() {
     ALREADY_INSTALLED: false,
     REMOVED: false,
   })
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
+  const [chatModalOpen, setChatModalOpen] = useState(false)
 
   const toggleBucket = (bucketKey: string) => {
     setExpandedBuckets(prev => ({
       ...prev,
       [bucketKey]: !prev[bucketKey]
     }))
+  }
+
+  const handleOpenChat = (lead: Lead) => {
+    setSelectedLead(lead)
+    setChatModalOpen(true)
+  }
+
+  const handleUpdateStatus = async (leadId: string, newStatus: string) => {
+    try {
+      const response = await fetch(`/api/leads/${leadId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update status')
+      }
+
+      // Refresh data to see lead move between buckets
+      fetchData()
+    } catch (error) {
+      console.error('Error updating status:', error)
+      alert('Failed to update status')
+    }
   }
 
   useEffect(() => {
@@ -405,6 +433,14 @@ export function DashboardClient() {
           </div>
         </div>
       )}
+
+      {/* SMS Chat Modal */}
+      <SmsChatModal
+        lead={selectedLead}
+        open={chatModalOpen}
+        onOpenChange={setChatModalOpen}
+        onRefresh={fetchData}
+      />
     </div>
   )
 }
@@ -419,10 +455,13 @@ interface StatusBucketProps {
   color: 'red' | 'orange' | 'blue' | 'green' | 'purple' | 'gray' | 'slate'
   expanded: boolean
   onToggle: () => void
+  onOpenChat?: (lead: Lead) => void
+  onUpdateStatus?: (leadId: string, newStatus: string) => void
 }
 
-function StatusBucket({ bucketKey, title, description, count, leads, color, expanded, onToggle }: StatusBucketProps) {
+function StatusBucket({ bucketKey, title, description, count, leads, color, expanded, onToggle, onOpenChat, onUpdateStatus }: StatusBucketProps) {
   const [expandedLeads, setExpandedLeads] = useState<Set<string>>(new Set())
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
 
   const toggleLead = (leadId: string) => {
     setExpandedLeads(prev => {
@@ -618,6 +657,50 @@ function StatusBucket({ bucketKey, title, description, count, leads, color, expa
                       {lead.m1_sent_at && <span>M1 ✓</span>}
                       {lead.m2_sent_at && <span>M2 ✓</span>}
                       {lead.m3_sent_at && <span>M3 ✓</span>}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-3 pt-2">
+                      <div className="flex-1">
+                        <label className="text-xs font-medium text-muted-foreground mb-1 block">
+                          Status
+                        </label>
+                        <Select
+                          value={lead.contact_status}
+                          onValueChange={(newStatus) => onUpdateStatus?.(lead.id, newStatus)}
+                          disabled={updatingStatus === lead.id}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="HOT">🔥 Hot</SelectItem>
+                            <SelectItem value="WARM">☀️ Warm</SelectItem>
+                            <SelectItem value="COLD">❄️ Cold</SelectItem>
+                            <SelectItem value="CONTACTED_1">📧 Contacted 1</SelectItem>
+                            <SelectItem value="CONTACTED_2">📧 Contacted 2</SelectItem>
+                            <SelectItem value="CONTACTED_3">📧 Contacted 3</SelectItem>
+                            <SelectItem value="CALL_BOOKED">📞 Call Booked</SelectItem>
+                            <SelectItem value="CONVERTED">✨ Converted</SelectItem>
+                            <SelectItem value="ALREADY_INSTALLED">✅ Already Installed</SelectItem>
+                            <SelectItem value="REMOVED">🗑️ Removed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-end">
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onOpenChat?.(lead)
+                          }}
+                          variant="default"
+                          size="default"
+                          className="gap-2"
+                        >
+                          <Send className="h-4 w-4" />
+                          Send Message
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}

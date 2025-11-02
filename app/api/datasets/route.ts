@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { name, description, source } = await request.json()
+    const { name, description, source, phoneNumberId } = await request.json()
 
     if (!name) {
       return NextResponse.json(
@@ -117,6 +117,7 @@ export async function POST(request: Request) {
         description: description || null,
         source: source || 'manual',
         uploaded_by: user.id,
+        phone_number_id: phoneNumberId || null,
       })
       .select()
       .single()

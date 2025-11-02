@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Papa from 'papaparse'
 import {
@@ -15,7 +15,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Loader2, Upload, FileText, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Loader2, Upload, FileText, CheckCircle2, AlertCircle, Phone } from 'lucide-react'
 
 interface CreateDatasetModalProps {
   open: boolean
@@ -38,6 +39,8 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
   // Dataset details
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [phoneNumberId, setPhoneNumberId] = useState<string>('')
+  const [phoneNumbers, setPhoneNumbers] = useState<any[]>([])
   const [datasetId, setDatasetId] = useState<string | null>(null)
 
   // CSV upload
@@ -48,6 +51,29 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
   const [dragActive, setDragActive] = useState(false)
 
   // Required fields for lead import
+  // Fetch phone numbers when modal opens
+  useEffect(() => {
+    if (open) {
+      fetchPhoneNumbers()
+    }
+  }, [open])
+
+  const fetchPhoneNumbers = async () => {
+    try {
+      const response = await fetch('/api/phone-numbers')
+      const data = await response.json()
+      setPhoneNumbers(data.phoneNumbers || [])
+
+      // Auto-select default phone if available
+      const defaultPhone = data.phoneNumbers?.find((p: any) => p.is_default)
+      if (defaultPhone) {
+        setPhoneNumberId(defaultPhone.id)
+      }
+    } catch (error) {
+      console.error('Error fetching phone numbers:', error)
+    }
+  }
+
   const requiredFields = [
     // Core fields (required)
     { key: 'first_name', label: 'First Name', required: true },
@@ -80,11 +106,15 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
     setError(null)
 
     try {
-      console.log('Creating dataset with:', { name, description })
+      console.log('Creating dataset with:', { name, description, phoneNumberId })
       const response = await fetch('/api/datasets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, description }),
+        body: JSON.stringify({
+          name,
+          description,
+          phoneNumberId: phoneNumberId || null
+        }),
       })
 
       console.log('Response status:', response.status)
@@ -462,6 +492,42 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
                     onChange={(e) => setDescription(e.target.value)}
                     rows={3}
                   />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="phone-number">Phone Number</Label>
+                  <Select value={phoneNumberId} onValueChange={setPhoneNumberId}>
+                    <SelectTrigger id="phone-number">
+                      <SelectValue placeholder="Select a phone number (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {phoneNumbers.length === 0 ? (
+                        <div className="p-2 text-sm text-muted-foreground text-center">
+                          No phone numbers configured
+                        </div>
+                      ) : (
+                        phoneNumbers.map((phone: any) => (
+                          <SelectItem key={phone.id} value={phone.id}>
+                            <div className="flex items-center gap-2">
+                              <Phone className="h-3 w-3" />
+                              <span>{phone.phone_number}</span>
+                              {phone.label && (
+                                <span className="text-xs text-muted-foreground">- {phone.label}</span>
+                              )}
+                              {phone.is_default && (
+                                <span className="text-xs bg-primary/10 text-primary px-1 rounded">Default</span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {phoneNumbers.length === 0
+                      ? 'Add phone numbers in Settings to enable SMS messaging'
+                      : 'This phone number will be used for all SMS messages to leads in this dataset'}
+                  </p>
                 </div>
               </div>
 

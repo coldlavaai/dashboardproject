@@ -67,6 +67,63 @@ export async function GET(
   }
 }
 
+export async function PATCH(
+  request: Request,
+  context: RouteContext
+) {
+  try {
+    const { id } = await context.params
+    const user = await getCurrentUser()
+
+    if (!user || !user.profile) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const updates = await request.json()
+    const supabase = await createClient()
+
+    // Get user's client
+    const { data: userClient } = await (supabase
+      .from('user_clients') as any)
+      .select('client_id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (!userClient) {
+      return NextResponse.json({ error: 'No client found' }, { status: 404 })
+    }
+
+    // Update dataset (must belong to user's client)
+    const { data: dataset, error } = await (supabase
+      .from('datasets') as any)
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .eq('client_id', userClient.client_id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Dataset update error:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    if (!dataset) {
+      return NextResponse.json({ error: 'Dataset not found' }, { status: 404 })
+    }
+
+    return NextResponse.json({ dataset })
+  } catch (error) {
+    console.error('Dataset update error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function DELETE(
   request: Request,
   context: RouteContext
