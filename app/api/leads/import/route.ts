@@ -122,7 +122,10 @@ export async function POST(request: Request) {
     console.log(`Preparing to insert ${leadsToInsert.length} leads in batches`)
 
     // Insert leads in batches of 100 using service role client (bypasses RLS)
+    let actualInserted = 0
+    let duplicateCount = 0
     const batchSize = 100
+
     for (let i = 0; i < leadsToInsert.length; i += batchSize) {
       const batch = leadsToInsert.slice(i, i + batchSize)
       console.log(`Inserting batch ${Math.floor(i / batchSize) + 1}, size: ${batch.length}`)
@@ -132,13 +135,37 @@ export async function POST(request: Request) {
         .insert(batch)
 
       if (insertError) {
-        console.error('Error inserting batch:', insertError)
-        console.error('First lead in failed batch:', batch[0])
-        throw new Error(`Database error: ${insertError.message || insertError.code}`)
+        // If we get a duplicate key error, insert one by one and skip duplicates
+        if (insertError.code === '23505') {
+          console.log('Duplicate phone numbers detected, inserting individually...')
+          for (const lead of batch) {
+            const { error: singleError } = await (supabaseAdmin
+              .from('leads') as any)
+              .insert([lead])
+
+            if (singleError) {
+              if (singleError.code === '23505') {
+                duplicateCount++
+                console.log(`Skipped duplicate: ${lead.phone_number}`)
+              } else {
+                console.error('Error inserting lead:', singleError, lead)
+                errorCount++
+              }
+            } else {
+              actualInserted++
+            }
+          }
+        } else {
+          console.error('Error inserting batch:', insertError)
+          console.error('First lead in failed batch:', batch[0])
+          throw new Error(`Database error: ${insertError.message || insertError.code}`)
+        }
+      } else {
+        actualInserted += batch.length
       }
     }
 
-    console.log('All batches inserted successfully')
+    console.log(`Inserted ${actualInserted} leads, skipped ${duplicateCount} duplicates`)
 
     // Update dataset stats using service role client
     const { count: totalLeads } = await (supabaseAdmin
@@ -157,7 +184,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      imported: successCount,
+      imported: actualInserted,
+      duplicates: duplicateCount,
       errors: errorCount,
       total: leadsToInsert.length,
     })
