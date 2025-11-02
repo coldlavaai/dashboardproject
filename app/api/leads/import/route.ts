@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/actions'
 import { normalizeUKPhone } from '@/lib/phone-utils'
+import { parseFlexibleDate } from '@/lib/date-utils'
 
 export async function POST(request: Request) {
   try {
@@ -88,6 +89,9 @@ export async function POST(request: Request) {
         // Normalize phone number to +44 format
         const normalizedPhone = normalizeUKPhone(phone.trim())
 
+        // Parse inquiry date to YYYY-MM-DD format
+        const parsedDate = inquiry_date ? parseFlexibleDate(inquiry_date) : null
+
         leadsToInsert.push({
           client_id: userClient.client_id,
           dataset_id: datasetId,
@@ -96,7 +100,7 @@ export async function POST(request: Request) {
           phone_number: normalizedPhone,
           email: email.trim(),
           postcode: postcode.trim(),
-          inquiry_date: inquiry_date ? inquiry_date : null,
+          inquiry_date: parsedDate,
           notes: notes ? notes.trim() : null,
           contact_status: 'READY',
         })
