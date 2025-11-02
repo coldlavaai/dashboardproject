@@ -95,14 +95,13 @@ export function DashboardClient() {
     }
   }
 
-  // Group leads by status
+  // Group leads by status (excluding READY - not useful to display)
   const leadsByStatus = {
     CONVERTED: leads.filter(l => l.contact_status === 'CONVERTED'),
     CALL_BOOKED: leads.filter(l => l.contact_status === 'CALL_BOOKED'),
     HOT: leads.filter(l => l.contact_status === 'HOT'),
     WARM: leads.filter(l => l.contact_status === 'WARM'),
     COLD: leads.filter(l => l.contact_status === 'COLD'),
-    READY: leads.filter(l => l.contact_status === 'READY'),
     CONTACTED: leads.filter(l => ['CONTACTED_1', 'CONTACTED_2', 'CONTACTED_3'].includes(l.contact_status)),
     ALREADY_INSTALLED: leads.filter(l => l.contact_status === 'ALREADY_INSTALLED'),
     REMOVED: leads.filter(l => l.contact_status === 'REMOVED'),
@@ -288,16 +287,6 @@ export function DashboardClient() {
               count={leadsByStatus.COLD.length}
               leads={leadsByStatus.COLD}
               color="blue"
-            />
-          )}
-
-          {/* READY Section */}
-          {leadsByStatus.READY.length > 0 && (
-            <StatusBucket
-              title="Ready to Contact"
-              count={leadsByStatus.READY.length}
-              leads={leadsByStatus.READY}
-              color="gray"
             />
           )}
 
