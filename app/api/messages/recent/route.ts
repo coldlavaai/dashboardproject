@@ -39,7 +39,7 @@ export async function GET(request: Request) {
         sent_at,
         created_at,
         lead_id,
-        leads (
+        leads!left (
           id,
           first_name,
           last_name,
@@ -49,6 +49,13 @@ export async function GET(request: Request) {
       .eq('client_id', userClient.client_id)
       .order('created_at', { ascending: false })
       .limit(limit)
+
+    console.log('Recent messages query result:', {
+      count: messages?.length,
+      error,
+      clientId: userClient.client_id,
+      messages: messages?.slice(0, 2) // Log first 2 messages for debugging
+    })
 
     if (error) {
       console.error('Error fetching recent messages:', error)

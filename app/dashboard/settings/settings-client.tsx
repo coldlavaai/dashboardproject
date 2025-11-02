@@ -179,12 +179,15 @@ export function SettingsClient() {
   }
 
   const fetchRecentMessages = async () => {
+    setLoadingMessages(true)
     try {
       const response = await fetch('/api/messages/recent?limit=10')
       const data = await response.json()
       setRecentMessages(data.messages || [])
     } catch (error) {
       console.error('Error fetching recent messages:', error)
+    } finally {
+      setLoadingMessages(false)
     }
   }
 
@@ -370,6 +373,9 @@ export function SettingsClient() {
         message: 'Test SMS sent successfully!',
         from: data.from
       })
+
+      // Immediately refresh recent messages to show the outbound message
+      await fetchRecentMessages()
 
       // Clear form
       if (testMode === 'manual') {
