@@ -3,6 +3,7 @@ import { createClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/actions'
 import { normalizeUKPhone } from '@/lib/phone-utils'
 import { parseFlexibleDate } from '@/lib/date-utils'
+import Papa from 'papaparse'
 
 export async function POST(request: Request) {
   try {
@@ -52,25 +53,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Dataset not found' }, { status: 404 })
     }
 
-    // Parse CSV
+    // Parse CSV properly using PapaParse (handles quoted fields with newlines)
     const text = await file.text()
-    const lines = text.split('\n').filter(line => line.trim())
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''))
+    const parseResult = Papa.parse(text, {
+      header: true,
+      skipEmptyLines: true,
+    })
+
+    if (parseResult.errors.length > 0) {
+      console.error('CSV parsing errors:', parseResult.errors)
+      throw new Error(`CSV parsing failed: ${parseResult.errors[0].message}`)
+    }
+
+    const rows = parseResult.data as any[]
+    console.log(`Parsed ${rows.length} rows from CSV`)
 
     // Process each row
     const leadsToInsert = []
     let successCount = 0
     let errorCount = 0
 
-    for (let i = 1; i < lines.length; i++) {
+    for (const row of rows) {
       try {
-        const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''))
-        const row: Record<string, string> = {}
-
-        headers.forEach((header, index) => {
-          row[header] = values[index] || ''
-        })
-
         // Map columns based on user's mapping
         const first_name = mapping.first_name ? row[mapping.first_name] : ''
         const last_name = mapping.last_name ? row[mapping.last_name] : ''
@@ -90,7 +94,7 @@ export async function POST(request: Request) {
         const normalizedPhone = normalizeUKPhone(phone.trim())
 
         // Parse inquiry date to YYYY-MM-DD format
-        const parsedDate = inquiry_date ? parseFlexibleDate(inquiry_date) : null
+        const parsedDate = inquiry_date ? parseFlexibleDate(inquiry_date.trim()) : null
 
         leadsToInsert.push({
           client_id: userClient.client_id,

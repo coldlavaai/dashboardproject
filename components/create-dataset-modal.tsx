@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import Papa from 'papaparse'
 import {
   Dialog,
   DialogContent,
@@ -138,61 +139,116 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
     setLoading(true)
 
     try {
-      // Parse CSV to get columns
+      // Parse CSV properly using PapaParse (handles quoted fields with newlines)
       const text = await selectedFile.text()
-      const lines = text.split('\n').filter(line => line.trim())
-      const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''))
 
-      // Count total data rows (excluding header)
-      const dataRowCount = lines.length - 1
-      setTotalRows(dataRowCount)
+      Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          const headers = results.meta.fields || []
+          const data = results.data as any[]
 
-      // Get sample data (first 3 rows)
-      const sampleData: string[][] = []
-      for (let i = 1; i < Math.min(4, lines.length); i++) {
-        if (lines[i].trim()) {
-          sampleData.push(lines[i].split(',').map(d => d.trim().replace(/^"|"$/g, '')))
-        }
-      }
+          // Count total data rows
+          setTotalRows(data.length)
 
-      const columns: CSVColumn[] = headers.map((header, index) => ({
-        name: header,
-        sampleData: sampleData.map(row => row[index] || ''),
-      }))
+          // Get sample data (first 3 rows)
+          const sampleRows = data.slice(0, 3)
 
-      setCsvColumns(columns)
+          const columns: CSVColumn[] = headers.map((header) => ({
+            name: header,
+            sampleData: sampleRows.map(row => {
+              const value = row[header] || ''
+              // Truncate long values for display (like conversation history)
+              return value.length > 100 ? value.substring(0, 100) + '...' : value
+            }),
+          }))
 
-      // Auto-map columns based on common names
-      const autoMapping: Record<string, string> = {}
-      columns.forEach(col => {
-        const lower = col.name.toLowerCase()
-        if (lower.includes('first') && lower.includes('name')) {
-          autoMapping['first_name'] = col.name
-        } else if (lower.includes('last') && lower.includes('name')) {
-          autoMapping['last_name'] = col.name
-        } else if (lower.includes('surname') || lower.includes('family')) {
-          autoMapping['last_name'] = col.name
-        } else if (lower.includes('phone') || lower.includes('mobile') || lower.includes('tel')) {
-          autoMapping['phone'] = col.name
-        } else if (lower.includes('email') || lower.includes('e-mail')) {
-          autoMapping['email'] = col.name
-        } else if (lower.includes('postcode') || lower.includes('post code') || lower.includes('zip')) {
-          autoMapping['postcode'] = col.name
-        } else if (lower.includes('inquiry') || lower.includes('enquiry') || lower.includes('date')) {
-          autoMapping['inquiry_date'] = col.name
-        } else if (lower.includes('note') || lower.includes('comment') || lower.includes('description')) {
-          autoMapping['notes'] = col.name
+          setCsvColumns(columns)
+
+          // Auto-map columns (moved to end of parse callback)
+          autoMapColumns(columns)
+
+          setStep('mapping')
+          setLoading(false)
+        },
+        error: (error) => {
+          throw new Error(`CSV parsing error: ${error.message}`)
         }
       })
 
-      setColumnMapping(autoMapping)
-      setStep('mapping')
-    } catch (err) {
-      console.error('Error parsing CSV:', err)
-      setError('Failed to parse CSV file. Please check the format.')
-    } finally {
+      return // Exit early - Papa.parse is async
+    } catch (err: any) {
+      setError(err.message || 'Failed to parse CSV')
       setLoading(false)
+      return
     }
+  }
+
+  // Auto-map columns function
+  const autoMapColumns = (columns: CSVColumn[]) => {
+    const autoMapping: Record<string, string> = {}
+
+    columns.forEach(col => {
+      const lower = col.name.toLowerCase().replace(/[_\s-]/g, '')
+
+      // First name
+      if (lower.includes('first') && lower.includes('name')) {
+        autoMapping['first_name'] = col.name
+      }
+      // Last name / second name / surname
+      else if (
+        (lower.includes('last') && lower.includes('name')) ||
+        (lower.includes('second') && lower.includes('name')) ||
+        lower.includes('surname') ||
+        lower.includes('familyname')
+      ) {
+        autoMapping['last_name'] = col.name
+      }
+      // Phone
+      else if (
+        lower.includes('phone') ||
+        lower.includes('mobile') ||
+        lower.includes('tel') ||
+        lower.includes('cell')
+      ) {
+        autoMapping['phone'] = col.name
+      }
+      // Email
+      else if (lower.includes('email') || lower.includes('mail')) {
+        autoMapping['email'] = col.name
+      }
+      // Postcode
+      else if (
+        lower.includes('postcode') ||
+        lower.includes('postal') ||
+        lower.includes('zip')
+      ) {
+        autoMapping['postcode'] = col.name
+      }
+      // Inquiry/Enquiry date
+      else if (
+        lower.includes('inquiry') ||
+        lower.includes('enquiry') ||
+        (lower.includes('date') && !lower.includes('install'))
+      ) {
+        if (!autoMapping['inquiry_date']) {
+          autoMapping['inquiry_date'] = col.name
+        }
+      }
+      // Notes
+      else if (
+        lower.includes('note') ||
+        lower.includes('comment') ||
+        lower.includes('description')
+      ) {
+        if (!autoMapping['notes']) {
+          autoMapping['notes'] = col.name
+        }
+      }
+    })
+
+    setColumnMapping(autoMapping)
   }
 
   const handleMappingChange = (field: string, csvColumn: string) => {
