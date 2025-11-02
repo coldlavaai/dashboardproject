@@ -75,8 +75,15 @@ export async function POST(request: Request) {
       to: to,
     })
 
+    console.log('Test SMS sent via Twilio:', {
+      sid: twilioMessage.sid,
+      from: defaultPhone.phone_number,
+      to: to,
+      status: twilioMessage.status
+    })
+
     // Save the outbound test message to database (NOT associated with any lead)
-    await (supabase
+    const { data: savedMessage, error: saveError } = await (supabase
       .from('messages') as any)
       .insert({
         lead_id: null, // Test messages are standalone, not linked to leads
@@ -91,13 +98,21 @@ export async function POST(request: Request) {
         twilio_status: twilioMessage.status,
         sent_at: new Date().toISOString(),
       })
+      .select()
+
+    if (saveError) {
+      console.error('Error saving test message to database:', saveError)
+    } else {
+      console.log('Test message saved to database:', savedMessage)
+    }
 
     return NextResponse.json({
       success: true,
       messageSid: twilioMessage.sid,
       status: twilioMessage.status,
       from: defaultPhone.phone_number,
-      to: to
+      to: to,
+      savedToDb: !saveError
     })
   } catch (error: any) {
     console.error('Test SMS error:', error)

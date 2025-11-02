@@ -4,6 +4,10 @@ import twilio from 'twilio'
 
 export async function POST(request: Request) {
   try {
+    console.log('=== TWILIO WEBHOOK RECEIVED ===')
+    console.log('Request URL:', request.url)
+    console.log('Request method:', request.method)
+
     // Parse the incoming Twilio webhook data
     const formData = await request.formData()
 
@@ -15,7 +19,7 @@ export async function POST(request: Request) {
       NumMedia: formData.get('NumMedia') as string,
     }
 
-    console.log('Received Twilio webhook:', twilioData)
+    console.log('Received Twilio webhook data:', twilioData)
 
     // Validate Twilio signature (optional but recommended for production)
     // const signature = request.headers.get('x-twilio-signature')
