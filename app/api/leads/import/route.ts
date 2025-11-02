@@ -92,7 +92,6 @@ export async function POST(request: Request) {
           email: email || null,
           notes: notes || null,
           contact_status: 'READY',
-          uploaded_by: user.id,
         })
 
         successCount++
