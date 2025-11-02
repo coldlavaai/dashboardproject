@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/actions'
+import { normalizeUKPhone } from '@/lib/phone-utils'
 
 export async function POST(request: Request) {
   try {
@@ -81,14 +82,17 @@ export async function POST(request: Request) {
           continue
         }
 
+        // Normalize phone number to +44 format
+        const normalizedPhone = normalizeUKPhone(phone.trim())
+
         leadsToInsert.push({
           client_id: userClient.client_id,
           dataset_id: datasetId,
           first_name: first_name.trim(),
-          last_name: last_name ? last_name.trim() : null,
-          phone_number: phone.trim(),
-          email: email ? email.trim() : null,
-          postcode: postcode ? postcode.trim() : null,
+          last_name: last_name.trim(),
+          phone_number: normalizedPhone,
+          email: email.trim(),
+          postcode: postcode.trim(),
           inquiry_date: inquiry_date ? inquiry_date : null,
           notes: notes ? notes.trim() : null,
           contact_status: 'READY',
