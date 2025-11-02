@@ -42,6 +42,7 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
   // CSV upload
   const [file, setFile] = useState<File | null>(null)
   const [csvColumns, setCsvColumns] = useState<CSVColumn[]>([])
+  const [totalRows, setTotalRows] = useState(0)
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({})
   const [dragActive, setDragActive] = useState(false)
 
@@ -139,8 +140,12 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
     try {
       // Parse CSV to get columns
       const text = await selectedFile.text()
-      const lines = text.split('\n')
+      const lines = text.split('\n').filter(line => line.trim())
       const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''))
+
+      // Count total data rows (excluding header)
+      const dataRowCount = lines.length - 1
+      setTotalRows(dataRowCount)
 
       // Get sample data (first 3 rows)
       const sampleData: string[][] = []
@@ -258,6 +263,7 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
     setDatasetId(null)
     setFile(null)
     setCsvColumns([])
+    setTotalRows(0)
     setColumnMapping({})
     setError(null)
   }
@@ -531,7 +537,7 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
               </Button>
               <Button onClick={handleImport} disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Import {csvColumns.length > 0 && `${csvColumns.length} leads`}
+                Import {totalRows > 0 && `${totalRows} leads`}
               </Button>
             </DialogFooter>
           </>
