@@ -80,10 +80,12 @@ export function DatasetsClient() {
         throw new Error('Failed to delete dataset')
       }
 
-      // Remove from state
+      // Immediately remove from state for instant UI update
       setDatasets(datasets.filter(d => d.id !== datasetToDelete.id))
       setDeleteDialogOpen(false)
       setDatasetToDelete(null)
+
+      console.log('Dataset deleted successfully')
     } catch (error) {
       console.error('Error deleting dataset:', error)
       alert('Failed to delete dataset. Please try again.')

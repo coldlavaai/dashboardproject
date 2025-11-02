@@ -230,11 +230,17 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
       }
 
       // Success!
+      const result = await response.json()
+      console.log('Import successful:', result)
+
       setStep('complete')
       setTimeout(() => {
         onOpenChange(false)
         resetModal()
+        // Refresh to show updated lead counts
         router.refresh()
+        // Navigate to the new dataset
+        router.push(`/dashboard/datasets/${datasetId}`)
       }, 2000)
     } catch (err: any) {
       console.error('Error importing leads:', err)
