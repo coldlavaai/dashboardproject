@@ -75,21 +75,11 @@ export async function POST(request: Request) {
       to: to,
     })
 
-    // Try to find the lead by phone number to associate the message
-    const { data: leads } = await (supabase
-      .from('leads') as any)
-      .select('id, dataset_id')
-      .eq('phone_number', to)
-      .eq('client_id', userClient.client_id)
-      .limit(1)
-
-    const lead = leads?.[0] || null
-
-    // Save the outbound test message to database
+    // Save the outbound test message to database (NOT associated with any lead)
     await (supabase
       .from('messages') as any)
       .insert({
-        lead_id: lead?.id || null,
+        lead_id: null, // Test messages are standalone, not linked to leads
         client_id: userClient.client_id,
         content: message,
         direction: 'outbound',
