@@ -67,15 +67,13 @@ export async function POST(request: Request) {
         })
 
         // Map columns based on user's mapping
-        const name = mapping.name ? row[mapping.name] : ''
+        const first_name = mapping.first_name ? row[mapping.first_name] : ''
+        const last_name = mapping.last_name ? row[mapping.last_name] : ''
         const phone = mapping.phone ? row[mapping.phone] : ''
         const email = mapping.email ? row[mapping.email] : ''
+        const postcode = mapping.postcode ? row[mapping.postcode] : ''
+        const inquiry_date = mapping.inquiry_date ? row[mapping.inquiry_date] : ''
         const notes = mapping.notes ? row[mapping.notes] : ''
-
-        // Split name into first_name and last_name
-        const nameParts = name.trim().split(' ')
-        const first_name = nameParts[0] || ''
-        const last_name = nameParts.slice(1).join(' ') || ''
 
         // Validate required fields
         if (!first_name || !phone) {
@@ -86,11 +84,13 @@ export async function POST(request: Request) {
         leadsToInsert.push({
           client_id: userClient.client_id,
           dataset_id: datasetId,
-          first_name,
-          last_name: last_name || null,
-          phone_number: phone,
-          email: email || null,
-          notes: notes || null,
+          first_name: first_name.trim(),
+          last_name: last_name ? last_name.trim() : null,
+          phone_number: phone.trim(),
+          email: email ? email.trim() : null,
+          postcode: postcode ? postcode.trim() : null,
+          inquiry_date: inquiry_date ? inquiry_date : null,
+          notes: notes ? notes.trim() : null,
           contact_status: 'READY',
         })
 

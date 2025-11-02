@@ -47,9 +47,12 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
 
   // Required fields for lead import
   const requiredFields = [
-    { key: 'name', label: 'Lead Name', required: true },
+    { key: 'first_name', label: 'First Name', required: true },
+    { key: 'last_name', label: 'Last Name', required: false },
     { key: 'phone', label: 'Phone Number', required: true },
     { key: 'email', label: 'Email Address', required: false },
+    { key: 'postcode', label: 'Postcode', required: false },
+    { key: 'inquiry_date', label: 'Inquiry Date', required: false },
     { key: 'notes', label: 'Notes', required: false },
   ]
 
@@ -158,12 +161,20 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
       const autoMapping: Record<string, string> = {}
       columns.forEach(col => {
         const lower = col.name.toLowerCase()
-        if (lower.includes('name') || lower.includes('full name') || lower.includes('contact')) {
-          autoMapping['name'] = col.name
+        if (lower.includes('first') && lower.includes('name')) {
+          autoMapping['first_name'] = col.name
+        } else if (lower.includes('last') && lower.includes('name')) {
+          autoMapping['last_name'] = col.name
+        } else if (lower.includes('surname') || lower.includes('family')) {
+          autoMapping['last_name'] = col.name
         } else if (lower.includes('phone') || lower.includes('mobile') || lower.includes('tel')) {
           autoMapping['phone'] = col.name
         } else if (lower.includes('email') || lower.includes('e-mail')) {
           autoMapping['email'] = col.name
+        } else if (lower.includes('postcode') || lower.includes('post code') || lower.includes('zip')) {
+          autoMapping['postcode'] = col.name
+        } else if (lower.includes('inquiry') || lower.includes('enquiry') || lower.includes('date')) {
+          autoMapping['inquiry_date'] = col.name
         } else if (lower.includes('note') || lower.includes('comment') || lower.includes('description')) {
           autoMapping['notes'] = col.name
         }
@@ -188,8 +199,8 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
 
   const handleImport = async () => {
     // Validate required fields
-    if (!columnMapping['name'] || !columnMapping['phone']) {
-      setError('Please map the required fields: Name and Phone Number')
+    if (!columnMapping['first_name'] || !columnMapping['phone']) {
+      setError('Please map the required fields: First Name and Phone Number')
       return
     }
 
