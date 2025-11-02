@@ -25,8 +25,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Phone, Plus, Trash2, Check, X, Edit2, Loader2, Key, Database, Send, Copy, User, Users, CreditCard, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Phone, Plus, Trash2, Check, X, Edit2, Loader2, Key, Database, Send, Copy, User, Users, CreditCard, AlertCircle, CheckCircle2, MessageSquare } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
 
 interface PhoneNumber {
   id: string
@@ -94,6 +95,10 @@ export function SettingsClient() {
   const [sendingTest, setSendingTest] = useState(false)
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; from?: string } | null>(null)
 
+  // Recent messages for monitoring
+  const [recentMessages, setRecentMessages] = useState<any[]>([])
+  const [loadingMessages, setLoadingMessages] = useState(false)
+
   // Delete confirmation
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [phoneToDelete, setPhoneToDelete] = useState<PhoneNumber | null>(null)
@@ -107,6 +112,7 @@ export function SettingsClient() {
     fetchCredentials()
     fetchPhoneNumbers()
     fetchDatasets()
+    fetchRecentMessages()
   }, [])
 
   useEffect(() => {
@@ -117,6 +123,17 @@ export function SettingsClient() {
       setTestLeadId('')
     }
   }, [testDatasetId])
+
+  // Auto-refresh messages when on Twilio tab
+  useEffect(() => {
+    if (activeTab === 'twilio') {
+      const interval = setInterval(() => {
+        fetchRecentMessages()
+      }, 10000) // Refresh every 10 seconds
+
+      return () => clearInterval(interval)
+    }
+  }, [activeTab])
 
   const fetchCredentials = async () => {
     try {
@@ -158,6 +175,16 @@ export function SettingsClient() {
     } catch (error) {
       console.error('Error fetching leads:', error)
       setDatasetLeads([])
+    }
+  }
+
+  const fetchRecentMessages = async () => {
+    try {
+      const response = await fetch('/api/messages/recent?limit=10')
+      const data = await response.json()
+      setRecentMessages(data.messages || [])
+    } catch (error) {
+      console.error('Error fetching recent messages:', error)
     }
   }
 
@@ -847,6 +874,109 @@ export function SettingsClient() {
                     </Alert>
                   )}
                 </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Recent Messages Monitor */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5" />
+                    Recent Messages
+                  </CardTitle>
+                  <CardDescription>
+                    Monitor recent SMS activity to test webhook connectivity
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchRecentMessages()}
+                  disabled={loadingMessages}
+                >
+                  {loadingMessages ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      Refresh
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {recentMessages.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No recent messages</p>
+                  <p className="text-xs mt-2">
+                    Send a test SMS above, then reply from your phone to see it appear here
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="text-xs text-muted-foreground mb-2">
+                    Auto-refreshing every 10 seconds • Last {recentMessages.length} messages
+                  </div>
+                  {recentMessages.map((msg: any) => {
+                    const isInbound = msg.direction === 'inbound'
+                    const lead = msg.leads?.[0]
+
+                    return (
+                      <div
+                        key={msg.id}
+                        className={`p-3 rounded-lg border ${
+                          isInbound
+                            ? 'bg-blue-50 border-blue-200'
+                            : 'bg-gray-50 border-gray-200'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant="secondary"
+                              className={
+                                isInbound
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-gray-600 text-white'
+                              }
+                            >
+                              {isInbound ? '📥 INBOUND' : '📤 OUTBOUND'}
+                            </Badge>
+                            {lead && (
+                              <span className="text-sm font-medium">
+                                {lead.first_name} {lead.last_name}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            {new Date(msg.created_at).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="text-sm mb-2">
+                          <span className="font-mono text-xs text-muted-foreground">
+                            {isInbound ? msg.from_number : msg.to_number}
+                          </span>
+                        </div>
+                        <div className="text-sm">
+                          {msg.content}
+                        </div>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Badge variant="outline" className="text-xs">
+                            {msg.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               )}
             </CardContent>
           </Card>
