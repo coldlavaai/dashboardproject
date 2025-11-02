@@ -4,22 +4,28 @@ import { getCurrentUser } from '@/lib/auth/actions'
 
 export async function GET() {
   try {
+    console.log('GET /api/datasets - Starting...')
     const user = await getCurrentUser()
+    console.log('GET /api/datasets - User:', user ? { id: user.id, email: user.email, hasProfile: !!user.profile } : null)
 
     if (!user || !user.profile) {
+      console.error('GET /api/datasets - Unauthorized: No user or profile')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const supabase = await createClient()
 
     // Get user's client
-    const { data: userClient } = await (supabase
+    const { data: userClient, error: clientError } = await (supabase
       .from('user_clients') as any)
       .select('client_id')
       .eq('user_id', user.id)
       .single()
 
+    console.log('GET /api/datasets - User client:', { userClient, clientError })
+
     if (!userClient) {
+      console.error('GET /api/datasets - No client found')
       return NextResponse.json({ error: 'No client found' }, { status: 404 })
     }
 
@@ -40,11 +46,14 @@ export async function GET() {
       .eq('client_id', userClient.client_id)
       .order('created_at', { ascending: false })
 
+    console.log('GET /api/datasets - Query result:', { count: datasets?.length, error })
+
     if (error) {
-      console.error('Error fetching datasets:', error)
+      console.error('GET /api/datasets - Error fetching datasets:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    console.log('GET /api/datasets - Success! Returning', datasets.length, 'datasets')
     return NextResponse.json({ datasets })
   } catch (error) {
     console.error('Datasets API error:', error)
