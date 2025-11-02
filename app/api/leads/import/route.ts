@@ -76,7 +76,7 @@ export async function POST(request: Request) {
         const notes = mapping.notes ? row[mapping.notes] : ''
 
         // Validate required fields
-        if (!first_name || !phone) {
+        if (!first_name || !last_name || !phone || !email || !postcode) {
           errorCount++
           continue
         }

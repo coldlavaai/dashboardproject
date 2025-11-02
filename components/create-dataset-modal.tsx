@@ -48,12 +48,12 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
   // Required fields for lead import
   const requiredFields = [
     { key: 'first_name', label: 'First Name', required: true },
-    { key: 'last_name', label: 'Last Name', required: false },
+    { key: 'last_name', label: 'Last Name', required: true },
     { key: 'phone', label: 'Phone Number', required: true },
-    { key: 'email', label: 'Email Address', required: false },
-    { key: 'postcode', label: 'Postcode', required: false },
-    { key: 'inquiry_date', label: 'Inquiry Date', required: false },
-    { key: 'notes', label: 'Notes', required: false },
+    { key: 'email', label: 'Email Address', required: true },
+    { key: 'postcode', label: 'Postcode', required: true },
+    { key: 'inquiry_date', label: 'Inquiry Date', required: false, preferred: true },
+    { key: 'notes', label: 'Notes', required: false, preferred: true },
   ]
 
   const handleDetailsSubmit = async (e: React.FormEvent) => {
@@ -199,8 +199,12 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
 
   const handleImport = async () => {
     // Validate required fields
-    if (!columnMapping['first_name'] || !columnMapping['phone']) {
-      setError('Please map the required fields: First Name and Phone Number')
+    const missingRequired = requiredFields
+      .filter(f => f.required && !columnMapping[f.key])
+      .map(f => f.label)
+
+    if (missingRequired.length > 0) {
+      setError(`Please map all required fields: ${missingRequired.join(', ')}`)
       return
     }
 
@@ -441,6 +445,11 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
                             {field.required && (
                               <span className="text-xs bg-destructive text-destructive-foreground px-2 py-0.5 rounded-full">
                                 Required
+                              </span>
+                            )}
+                            {!field.required && (field as any).preferred && (
+                              <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">
+                                Preferred
                               </span>
                             )}
                             {isMapped && (
