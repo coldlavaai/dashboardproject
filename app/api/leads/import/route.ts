@@ -119,53 +119,48 @@ export async function POST(request: Request) {
       )
     }
 
-    console.log(`Preparing to insert ${leadsToInsert.length} leads in batches`)
+    console.log(`Preparing to upsert ${leadsToInsert.length} leads in batches`)
 
-    // Insert leads in batches of 100 using service role client (bypasses RLS)
+    // Upsert leads in batches of 100 using service role client (bypasses RLS)
+    // This will INSERT new leads or UPDATE existing ones with matching (dataset_id, phone_number)
     let actualInserted = 0
-    let duplicateCount = 0
+    let updatedCount = 0
     const batchSize = 100
 
     for (let i = 0; i < leadsToInsert.length; i += batchSize) {
       const batch = leadsToInsert.slice(i, i + batchSize)
-      console.log(`Inserting batch ${Math.floor(i / batchSize) + 1}, size: ${batch.length}`)
+      console.log(`Upserting batch ${Math.floor(i / batchSize) + 1}, size: ${batch.length}`)
 
-      const { error: insertError } = await (supabaseAdmin
+      // Check for existing leads in this batch to track updates
+      const phoneNumbers = batch.map(l => l.phone_number)
+      const { data: existingLeads } = await (supabaseAdmin
         .from('leads') as any)
-        .insert(batch)
+        .select('phone_number')
+        .eq('dataset_id', datasetId)
+        .in('phone_number', phoneNumbers)
 
-      if (insertError) {
-        // If we get a duplicate key error, insert one by one and skip duplicates
-        if (insertError.code === '23505') {
-          console.log('Duplicate phone numbers detected, inserting individually...')
-          for (const lead of batch) {
-            const { error: singleError } = await (supabaseAdmin
-              .from('leads') as any)
-              .insert([lead])
+      const existingPhones = new Set(existingLeads?.map((l: any) => l.phone_number) || [])
+      const updateCountInBatch = batch.filter(l => existingPhones.has(l.phone_number)).length
+      updatedCount += updateCountInBatch
 
-            if (singleError) {
-              if (singleError.code === '23505') {
-                duplicateCount++
-                console.log(`Skipped duplicate: ${lead.phone_number}`)
-              } else {
-                console.error('Error inserting lead:', singleError, lead)
-                errorCount++
-              }
-            } else {
-              actualInserted++
-            }
-          }
-        } else {
-          console.error('Error inserting batch:', insertError)
-          console.error('First lead in failed batch:', batch[0])
-          throw new Error(`Database error: ${insertError.message || insertError.code}`)
-        }
-      } else {
-        actualInserted += batch.length
+      // Upsert with conflict resolution on unique constraint
+      const { error: upsertError } = await (supabaseAdmin
+        .from('leads') as any)
+        .upsert(batch, {
+          onConflict: 'dataset_id,phone_number',
+          ignoreDuplicates: false  // Update on conflict
+        })
+
+      if (upsertError) {
+        console.error('Error upserting batch:', upsertError)
+        console.error('First lead in failed batch:', batch[0])
+        throw new Error(`Database error: ${upsertError.message || upsertError.code}`)
       }
+
+      actualInserted += (batch.length - updateCountInBatch)
     }
 
-    console.log(`Inserted ${actualInserted} leads, skipped ${duplicateCount} duplicates`)
+    console.log(`Inserted ${actualInserted} new leads, updated ${updatedCount} existing leads`)
 
     // Update dataset stats using service role client
     const { count: totalLeads } = await (supabaseAdmin
@@ -185,7 +180,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       imported: actualInserted,
-      duplicates: duplicateCount,
+      updated: updatedCount,
       errors: errorCount,
       total: leadsToInsert.length,
     })

@@ -250,6 +250,21 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
     } catch (err: any) {
       console.error('Error importing leads:', err)
       setError(err.message || 'Failed to import leads')
+
+      // Clean up: delete the dataset since import failed
+      if (datasetId) {
+        try {
+          console.log('Cleaning up failed dataset:', datasetId)
+          await fetch(`/api/datasets/${datasetId}`, {
+            method: 'DELETE',
+          })
+          console.log('Dataset cleaned up successfully')
+          setDatasetId(null)
+        } catch (deleteErr) {
+          console.error('Failed to clean up dataset:', deleteErr)
+        }
+      }
+
       setStep('mapping')
     } finally {
       setLoading(false)
