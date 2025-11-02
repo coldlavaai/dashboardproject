@@ -334,6 +334,20 @@ interface StatusBucketProps {
 }
 
 function StatusBucket({ title, count, leads, color }: StatusBucketProps) {
+  const [expandedLeads, setExpandedLeads] = useState<Set<string>>(new Set())
+
+  const toggleLead = (leadId: string) => {
+    setExpandedLeads(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(leadId)) {
+        newSet.delete(leadId)
+      } else {
+        newSet.add(leadId)
+      }
+      return newSet
+    })
+  }
+
   const colorClasses = {
     red: 'border-l-red-500',
     orange: 'border-l-orange-500',
@@ -342,6 +356,31 @@ function StatusBucket({ title, count, leads, color }: StatusBucketProps) {
     purple: 'border-l-purple-500',
     gray: 'border-l-gray-400',
     slate: 'border-l-slate-400',
+  }
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status?.toUpperCase()) {
+      case 'HOT':
+        return 'bg-gradient-to-r from-orange-400 to-red-500 text-white'
+      case 'WARM':
+        return 'bg-gradient-to-r from-yellow-400 to-orange-400 text-white'
+      case 'COLD':
+        return 'bg-gradient-to-r from-blue-600 to-cyan-700 text-white'
+      case 'CALL_BOOKED':
+        return 'bg-gradient-to-r from-purple-400 to-pink-500 text-white'
+      case 'CONVERTED':
+        return 'bg-gradient-to-r from-emerald-400 to-teal-500 text-white'
+      case 'ALREADY_INSTALLED':
+        return 'bg-gradient-to-r from-green-500 to-emerald-600 text-white'
+      case 'REMOVED':
+        return 'bg-gradient-to-r from-red-400 to-rose-500 text-white'
+      case 'CONTACTED_1':
+      case 'CONTACTED_2':
+      case 'CONTACTED_3':
+        return 'bg-gradient-to-r from-blue-400 to-cyan-500 text-white'
+      default:
+        return 'bg-gray-400 text-white'
+    }
   }
 
   return (
@@ -356,63 +395,111 @@ function StatusBucket({ title, count, leads, color }: StatusBucketProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {leads.map((lead) => (
-            <div
-              key={lead.id}
-              className="rounded-lg border p-4 hover:bg-muted/50 transition-colors cursor-pointer"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h4 className="font-semibold">
-                    {lead.first_name} {lead.last_name}
-                  </h4>
-                  <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-3 w-3" />
-                      <span>{lead.phone_number}</span>
+          {leads.map((lead) => {
+            const isExpanded = expandedLeads.has(lead.id)
+            return (
+              <div
+                key={lead.id}
+                className="rounded-lg border bg-white/5 backdrop-blur-sm hover:bg-white/10 transition-all duration-200"
+              >
+                {/* Collapsed View */}
+                <div
+                  onClick={() => toggleLead(lead.id)}
+                  className="p-4 cursor-pointer"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <h4 className="font-semibold text-lg">
+                          {lead.first_name} {lead.last_name}
+                        </h4>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusBadgeColor(lead.contact_status)}`}>
+                          {lead.contact_status}
+                        </span>
+                      </div>
+                      <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-3 w-3" />
+                          <span>{lead.phone_number}</span>
+                        </div>
+                        {!isExpanded && lead.email && (
+                          <div className="flex items-center gap-2">
+                            <span>✉️</span>
+                            <span>{lead.email}</span>
+                          </div>
+                        )}
+                      </div>
+                      {!isExpanded && lead.latest_lead_reply && (
+                        <div className="mt-3 text-sm italic text-muted-foreground border-l-2 border-muted pl-3">
+                          "{lead.latest_lead_reply.substring(0, 100)}{lead.latest_lead_reply.length > 100 ? '...' : ''}"
+                        </div>
+                      )}
                     </div>
+                    <div className="ml-4 text-right text-sm text-muted-foreground flex flex-col items-end gap-1">
+                      {lead.reply_received_at && (
+                        <div className="text-xs">
+                          Replied {new Date(lead.reply_received_at).toLocaleDateString('en-GB', {
+                            day: 'numeric',
+                            month: 'short'
+                          })}
+                        </div>
+                      )}
+                      {lead.call_booked_time && (
+                        <div className="text-green-600 font-medium text-xs">
+                          Call: {new Date(lead.call_booked_time).toLocaleDateString('en-GB', {
+                            day: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Expanded View */}
+                {isExpanded && (
+                  <div className="px-4 pb-4 border-t border-muted pt-4 space-y-3">
                     {lead.email && (
-                      <div className="flex items-center gap-2">
-                        <span>✉️</span>
-                        <span>{lead.email}</span>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="font-medium">Email:</span>
+                        <a href={`mailto:${lead.email}`} className="text-blue-600 hover:underline">
+                          {lead.email}
+                        </a>
                       </div>
                     )}
                     {lead.postcode && (
-                      <div className="flex items-center gap-2">
-                        <span>📍</span>
-                        <span>{lead.postcode}</span>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="font-medium">Postcode:</span>
+                        <a
+                          href={`https://www.google.com/maps/search/${encodeURIComponent(lead.postcode)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          {lead.postcode}
+                        </a>
                       </div>
                     )}
+                    {lead.latest_lead_reply && (
+                      <div className="text-sm">
+                        <div className="font-medium mb-1">Latest Reply:</div>
+                        <div className="italic text-muted-foreground border-l-2 border-muted pl-3">
+                          "{lead.latest_lead_reply}"
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex gap-2 text-xs text-muted-foreground">
+                      {lead.m1_sent_at && <span>M1 ✓</span>}
+                      {lead.m2_sent_at && <span>M2 ✓</span>}
+                      {lead.m3_sent_at && <span>M3 ✓</span>}
+                    </div>
                   </div>
-                  {lead.latest_lead_reply && (
-                    <div className="mt-3 text-sm italic text-muted-foreground border-l-2 pl-3">
-                      "{lead.latest_lead_reply.substring(0, 100)}{lead.latest_lead_reply.length > 100 ? '...' : ''}"
-                    </div>
-                  )}
-                </div>
-                <div className="ml-4 text-right text-sm text-muted-foreground">
-                  {lead.reply_received_at && (
-                    <div>
-                      Replied {new Date(lead.reply_received_at).toLocaleDateString('en-GB', {
-                        day: 'numeric',
-                        month: 'short'
-                      })}
-                    </div>
-                  )}
-                  {lead.call_booked_time && (
-                    <div className="text-green-600 font-medium">
-                      Call: {new Date(lead.call_booked_time).toLocaleDateString('en-GB', {
-                        day: 'numeric',
-                        month: 'short',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </CardContent>
     </Card>
