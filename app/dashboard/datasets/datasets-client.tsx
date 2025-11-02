@@ -155,7 +155,7 @@ export function DatasetsClient() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {datasets.map((dataset) => (
             <div key={dataset.id} className="relative group">
-              <Link href={`/datasets/${dataset.id}`}>
+              <Link href={`/dashboard/datasets/${dataset.id}`}>
                 <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
                   <CardHeader>
                     <div className="flex items-center justify-between">
