@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/actions'
 import { normalizeUKPhone } from '@/lib/phone-utils'
 
@@ -23,7 +23,10 @@ export async function POST(request: Request) {
       )
     }
 
+    // Use regular client for authorization checks
     const supabase = await createClient()
+    // Use service role client for bulk inserts (bypasses RLS)
+    const supabaseAdmin = createServiceRoleClient()
 
     // Get user's client
     const { data: userClient } = await (supabase
@@ -114,13 +117,13 @@ export async function POST(request: Request) {
 
     console.log(`Preparing to insert ${leadsToInsert.length} leads in batches`)
 
-    // Insert leads in batches of 100
+    // Insert leads in batches of 100 using service role client (bypasses RLS)
     const batchSize = 100
     for (let i = 0; i < leadsToInsert.length; i += batchSize) {
       const batch = leadsToInsert.slice(i, i + batchSize)
       console.log(`Inserting batch ${Math.floor(i / batchSize) + 1}, size: ${batch.length}`)
 
-      const { error: insertError } = await (supabase
+      const { error: insertError } = await (supabaseAdmin
         .from('leads') as any)
         .insert(batch)
 
@@ -133,13 +136,13 @@ export async function POST(request: Request) {
 
     console.log('All batches inserted successfully')
 
-    // Update dataset stats
-    const { data: totalLeads } = await (supabase
+    // Update dataset stats using service role client
+    const { count: totalLeads } = await (supabaseAdmin
       .from('leads') as any)
       .select('*', { count: 'exact', head: true })
       .eq('dataset_id', datasetId)
 
-    await (supabase
+    await (supabaseAdmin
       .from('datasets') as any)
       .update({
         total_leads: totalLeads || 0,
