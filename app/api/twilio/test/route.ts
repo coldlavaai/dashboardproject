@@ -75,6 +75,33 @@ export async function POST(request: Request) {
       to: to,
     })
 
+    // Try to find the lead by phone number to associate the message
+    const { data: leads } = await (supabase
+      .from('leads') as any)
+      .select('id, dataset_id')
+      .eq('phone_number', to)
+      .eq('client_id', userClient.client_id)
+      .limit(1)
+
+    const lead = leads?.[0] || null
+
+    // Save the outbound test message to database
+    await (supabase
+      .from('messages') as any)
+      .insert({
+        lead_id: lead?.id || null,
+        client_id: userClient.client_id,
+        content: message,
+        direction: 'outbound',
+        message_type: 'sms',
+        from_number: defaultPhone.phone_number,
+        to_number: to,
+        status: 'sent',
+        twilio_sid: twilioMessage.sid,
+        twilio_status: twilioMessage.status,
+        sent_at: new Date().toISOString(),
+      })
+
     return NextResponse.json({
       success: true,
       messageSid: twilioMessage.sid,
