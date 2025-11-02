@@ -172,7 +172,7 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
           setStep('mapping')
           setLoading(false)
         },
-        error: (error) => {
+        error: (error: any) => {
           throw new Error(`CSV parsing error: ${error.message}`)
         }
       })
