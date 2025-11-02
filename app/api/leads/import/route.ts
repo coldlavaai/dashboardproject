@@ -112,19 +112,26 @@ export async function POST(request: Request) {
       )
     }
 
+    console.log(`Preparing to insert ${leadsToInsert.length} leads in batches`)
+
     // Insert leads in batches of 100
     const batchSize = 100
     for (let i = 0; i < leadsToInsert.length; i += batchSize) {
       const batch = leadsToInsert.slice(i, i + batchSize)
+      console.log(`Inserting batch ${Math.floor(i / batchSize) + 1}, size: ${batch.length}`)
+
       const { error: insertError } = await (supabase
         .from('leads') as any)
         .insert(batch)
 
       if (insertError) {
         console.error('Error inserting batch:', insertError)
-        throw insertError
+        console.error('First lead in failed batch:', batch[0])
+        throw new Error(`Database error: ${insertError.message || insertError.code}`)
       }
     }
+
+    console.log('All batches inserted successfully')
 
     // Update dataset stats
     const { data: totalLeads } = await (supabase
@@ -147,10 +154,19 @@ export async function POST(request: Request) {
       errors: errorCount,
       total: leadsToInsert.length,
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('CSV import error:', error)
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code
+    })
     return NextResponse.json(
-      { error: 'Failed to import leads' },
+      {
+        error: 'Failed to import leads',
+        details: error.message,
+        code: error.code
+      },
       { status: 500 }
     )
   }
