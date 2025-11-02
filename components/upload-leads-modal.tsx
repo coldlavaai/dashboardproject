@@ -42,7 +42,6 @@ export function UploadLeadsModal({ open, onOpenChange, datasetId }: UploadLeadsM
     { key: 'name', label: 'Lead Name', required: true },
     { key: 'phone', label: 'Phone Number', required: true },
     { key: 'email', label: 'Email Address', required: false },
-    { key: 'company', label: 'Company', required: false },
     { key: 'notes', label: 'Notes', required: false },
   ]
 
@@ -120,8 +119,6 @@ export function UploadLeadsModal({ open, onOpenChange, datasetId }: UploadLeadsM
           autoMapping['phone'] = col.name
         } else if (lower.includes('email') || lower.includes('e-mail')) {
           autoMapping['email'] = col.name
-        } else if (lower.includes('company') || lower.includes('business')) {
-          autoMapping['company'] = col.name
         } else if (lower.includes('note') || lower.includes('comment') || lower.includes('description')) {
           autoMapping['notes'] = col.name
         }
@@ -271,7 +268,7 @@ export function UploadLeadsModal({ open, onOpenChange, datasetId }: UploadLeadsM
                 <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                   <li>First row must contain column headers</li>
                   <li>Required columns: Name, Phone Number</li>
-                  <li>Optional columns: Email, Company, Notes</li>
+                  <li>Optional columns: Email, Notes</li>
                   <li>Use comma (,) as delimiter</li>
                 </ul>
               </div>

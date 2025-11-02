@@ -70,11 +70,15 @@ export async function POST(request: Request) {
         const name = mapping.name ? row[mapping.name] : ''
         const phone = mapping.phone ? row[mapping.phone] : ''
         const email = mapping.email ? row[mapping.email] : ''
-        const company = mapping.company ? row[mapping.company] : ''
         const notes = mapping.notes ? row[mapping.notes] : ''
 
+        // Split name into first_name and last_name
+        const nameParts = name.trim().split(' ')
+        const first_name = nameParts[0] || ''
+        const last_name = nameParts.slice(1).join(' ') || ''
+
         // Validate required fields
-        if (!name || !phone) {
+        if (!first_name || !phone) {
           errorCount++
           continue
         }
@@ -82,13 +86,12 @@ export async function POST(request: Request) {
         leadsToInsert.push({
           client_id: userClient.client_id,
           dataset_id: datasetId,
-          name,
-          phone,
+          first_name,
+          last_name: last_name || null,
+          phone_number: phone,
           email: email || null,
-          company: company || null,
           notes: notes || null,
-          status: 'new',
-          campaign_status: 'pending',
+          contact_status: 'READY',
           uploaded_by: user.id,
         })
 
