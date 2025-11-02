@@ -104,6 +104,11 @@ async function createTestUser() {
       }
     }
 
+    if (!user.user) {
+      console.error('Error: User creation succeeded but user data is null')
+      return
+    }
+
     console.log('✓ Created user:', user.user.email)
     console.log(`  User ID: ${user.user.id}`)
 
