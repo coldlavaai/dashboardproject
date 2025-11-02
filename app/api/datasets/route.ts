@@ -91,6 +91,14 @@ export async function POST(request: Request) {
     }
 
     // Create dataset
+    console.log('POST /api/datasets - Attempting to insert dataset with:', {
+      client_id: userClient.client_id,
+      name,
+      description: description || null,
+      source: source || 'manual',
+      uploaded_by: user.id,
+    })
+
     const { data: dataset, error } = await (supabase
       .from('datasets') as any)
       .insert({
@@ -104,8 +112,17 @@ export async function POST(request: Request) {
       .single()
 
     if (error) {
-      console.error('Error creating dataset:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      console.error('POST /api/datasets - Error creating dataset:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      })
+      return NextResponse.json({
+        error: error.message,
+        code: error.code,
+        details: error.details
+      }, { status: 500 })
     }
 
     return NextResponse.json({ dataset }, { status: 201 })
