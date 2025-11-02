@@ -52,14 +52,14 @@ export async function GET(
       .eq('dataset_id', id)
       .order('created_at', { ascending: false })
 
-    // Apply search filter
+    // Apply search filter (use correct column names)
     if (search) {
-      query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%,company.ilike.%${search}%`)
+      query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,phone_number.ilike.%${search}%,email.ilike.%${search}%,postcode.ilike.%${search}%`)
     }
 
-    // Apply status filter
+    // Apply status filter (use correct column name)
     if (status) {
-      query = query.eq('status', status)
+      query = query.eq('contact_status', status.toUpperCase())
     }
 
     // Apply pagination
@@ -73,8 +73,20 @@ export async function GET(
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    // Transform leads to match frontend interface
+    const transformedLeads = (leads || []).map((lead: any) => ({
+      id: lead.id,
+      name: `${lead.first_name} ${lead.last_name}`,
+      phone: lead.phone_number,
+      email: lead.email,
+      company: lead.postcode || null, // Show postcode in company field for now
+      status: (lead.contact_status || 'READY').toLowerCase(),
+      campaign_status: lead.contact_status || 'READY',
+      created_at: lead.created_at,
+    }))
+
     return NextResponse.json({
-      leads,
+      leads: transformedLeads,
       pagination: {
         page,
         limit,
