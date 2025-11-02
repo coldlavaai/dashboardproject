@@ -401,13 +401,13 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
         {step === 'mapping' && (
           <>
             <DialogHeader>
-              <DialogTitle>Map Columns</DialogTitle>
+              <DialogTitle>Map Your Columns</DialogTitle>
               <DialogDescription>
-                Match your CSV columns to our lead fields. We've made some automatic suggestions.
+                Connect your CSV columns to our lead fields. We've auto-detected most mappings.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="py-4 max-h-[60vh] overflow-y-auto">
+            <div className="py-4 max-h-[65vh] overflow-y-auto">
               {error && (
                 <div className="mb-4 flex items-center gap-2 rounded-lg border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
                   <AlertCircle className="h-4 w-4 flex-shrink-0" />
@@ -415,29 +415,94 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
                 </div>
               )}
 
-              <div className="space-y-4">
-                {requiredFields.map(field => (
-                  <div key={field.key} className="space-y-2">
-                    <Label htmlFor={field.key}>
-                      {field.label}
-                      {field.required && <span className="text-destructive ml-1">*</span>}
-                    </Label>
-                    <select
-                      id={field.key}
-                      value={columnMapping[field.key] || ''}
-                      onChange={(e) => handleMappingChange(field.key, e.target.value)}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              <div className="space-y-3">
+                {requiredFields.map(field => {
+                  const mappedColumn = columnMapping[field.key]
+                  const columnData = csvColumns.find(col => col.name === mappedColumn)
+                  const isMapped = !!mappedColumn
+
+                  return (
+                    <div
+                      key={field.key}
+                      className={`relative rounded-lg border-2 p-4 transition-all ${
+                        isMapped
+                          ? 'border-primary bg-primary/5'
+                          : field.required
+                            ? 'border-destructive/30 bg-background'
+                            : 'border-border bg-background'
+                      }`}
                     >
-                      <option value="">-- Skip this field --</option>
-                      {csvColumns.map(col => (
-                        <option key={col.name} value={col.name}>
-                          {col.name}
-                          {col.sampleData[0] ? ` (e.g., ${col.sampleData[0]})` : ''}
-                        </option>
-                      ))}
-                    </select>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Label htmlFor={field.key} className="text-base font-semibold">
+                              {field.label}
+                            </Label>
+                            {field.required && (
+                              <span className="text-xs bg-destructive text-destructive-foreground px-2 py-0.5 rounded-full">
+                                Required
+                              </span>
+                            )}
+                            {isMapped && (
+                              <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                                Mapped
+                              </span>
+                            )}
+                          </div>
+
+                          <select
+                            id={field.key}
+                            value={columnMapping[field.key] || ''}
+                            onChange={(e) => handleMappingChange(field.key, e.target.value)}
+                            className="w-full h-11 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          >
+                            <option value="">-- Select CSV column --</option>
+                            {csvColumns.map(col => (
+                              <option key={col.name} value={col.name}>
+                                {col.name}
+                              </option>
+                            ))}
+                          </select>
+
+                          {isMapped && columnData && columnData.sampleData.length > 0 && (
+                            <div className="mt-3 rounded-md bg-muted p-3">
+                              <div className="text-xs font-medium text-muted-foreground mb-2">
+                                Sample data from "{mappedColumn}":
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {columnData.sampleData.slice(0, 3).map((sample, idx) => (
+                                  sample && (
+                                    <span
+                                      key={idx}
+                                      className="inline-flex items-center rounded-md bg-background px-2.5 py-1 text-sm"
+                                    >
+                                      {sample}
+                                    </span>
+                                  )
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="mt-6 rounded-lg bg-muted p-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="font-medium text-sm mb-1">Ready to import</div>
+                    <div className="text-sm text-muted-foreground">
+                      {requiredFields.filter(f => f.required && columnMapping[f.key]).length} of {requiredFields.filter(f => f.required).length} required fields mapped
+                      {requiredFields.filter(f => !f.required && columnMapping[f.key]).length > 0 &&
+                        ` • ${requiredFields.filter(f => !f.required && columnMapping[f.key]).length} optional fields`
+                      }
+                    </div>
                   </div>
-                ))}
+                </div>
               </div>
             </div>
 
@@ -451,7 +516,7 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
               </Button>
               <Button onClick={handleImport} disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create & Import
+                Import {csvColumns.length > 0 && `${csvColumns.length} leads`}
               </Button>
             </DialogFooter>
           </>
