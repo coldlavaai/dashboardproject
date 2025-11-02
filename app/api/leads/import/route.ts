@@ -84,6 +84,20 @@ export async function POST(request: Request) {
         const inquiry_date = mapping.inquiry_date ? row[mapping.inquiry_date] : ''
         const notes = mapping.notes ? row[mapping.notes] : ''
 
+        // DBR tracking fields
+        const contact_status = mapping.contact_status ? row[mapping.contact_status] : 'READY'
+        const lead_sentiment = mapping.lead_sentiment ? row[mapping.lead_sentiment] : null
+        const reply_received = mapping.reply_received ? row[mapping.reply_received] : ''
+        const m1_sent = mapping.m1_sent ? row[mapping.m1_sent] : ''
+        const m2_sent = mapping.m2_sent ? row[mapping.m2_sent] : ''
+        const m3_sent = mapping.m3_sent ? row[mapping.m3_sent] : ''
+        const latest_lead_reply = mapping.latest_lead_reply ? row[mapping.latest_lead_reply] : ''
+        const conversation_history = mapping.conversation_history ? row[mapping.conversation_history] : ''
+        const manual_mode = mapping.manual_mode ? row[mapping.manual_mode] : ''
+        const call_booked = mapping.call_booked ? row[mapping.call_booked] : ''
+        const archived = mapping.archived ? row[mapping.archived] : ''
+        const install_date = mapping.install_date ? row[mapping.install_date] : ''
+
         // Validate required fields
         if (!first_name || !last_name || !phone || !email || !postcode) {
           errorCount++
@@ -93,8 +107,21 @@ export async function POST(request: Request) {
         // Normalize phone number to +44 format
         const normalizedPhone = normalizeUKPhone(phone.trim())
 
-        // Parse inquiry date to YYYY-MM-DD format
-        const parsedDate = inquiry_date ? parseFlexibleDate(inquiry_date.trim()) : null
+        // Parse dates
+        const parsedInquiryDate = inquiry_date ? parseFlexibleDate(inquiry_date.trim()) : null
+        const parsedReplyReceived = reply_received ? parseFlexibleDate(reply_received.trim()) : null
+        const parsedM1Sent = m1_sent ? parseFlexibleDate(m1_sent.trim()) : null
+        const parsedM2Sent = m2_sent ? parseFlexibleDate(m2_sent.trim()) : null
+        const parsedM3Sent = m3_sent ? parseFlexibleDate(m3_sent.trim()) : null
+        const parsedInstallDate = install_date ? parseFlexibleDate(install_date.trim()) : null
+
+        // Parse booleans
+        const isManualMode = manual_mode ? (manual_mode.toLowerCase() === 'true' || manual_mode === '1' || manual_mode.toLowerCase() === 'yes') : false
+        const isCallBooked = call_booked ? (call_booked.toLowerCase() === 'true' || call_booked === '1' || call_booked.toLowerCase() === 'yes') : false
+        const isArchived = archived ? (archived.toLowerCase() === 'true' || archived === '1' || archived.toLowerCase() === 'yes') : false
+
+        // Store conversation history in notes if not already set
+        const finalNotes = notes || conversation_history
 
         leadsToInsert.push({
           client_id: userClient.client_id,
@@ -104,9 +131,19 @@ export async function POST(request: Request) {
           phone_number: normalizedPhone,
           email: email.trim(),
           postcode: postcode.trim(),
-          inquiry_date: parsedDate,
-          notes: notes ? notes.trim() : null,
-          contact_status: 'READY',
+          inquiry_date: parsedInquiryDate,
+          notes: finalNotes ? finalNotes.trim() : null,
+          contact_status: contact_status ? contact_status.toUpperCase() : 'READY',
+          lead_sentiment: lead_sentiment ? lead_sentiment.toUpperCase() : null,
+          reply_received_at: parsedReplyReceived,
+          m1_sent_at: parsedM1Sent,
+          m2_sent_at: parsedM2Sent,
+          m3_sent_at: parsedM3Sent,
+          latest_lead_reply: latest_lead_reply ? latest_lead_reply.trim() : null,
+          manual_mode: isManualMode,
+          call_booked: isCallBooked,
+          archived: isArchived,
+          install_date: parsedInstallDate,
         })
 
         successCount++

@@ -76,15 +76,27 @@ export async function GET(
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // Transform leads to match frontend interface
+    // Transform leads to match frontend interface (return ALL DBR tracking fields)
     const transformedLeads = (leads || []).map((lead: any) => ({
       id: lead.id,
-      name: `${lead.first_name} ${lead.last_name}`,
-      phone: lead.phone_number,
+      first_name: lead.first_name,
+      last_name: lead.last_name,
+      phone_number: lead.phone_number,
       email: lead.email,
-      company: lead.postcode || null, // Show postcode in company field for now
-      status: (lead.contact_status || 'READY').toLowerCase(),
-      campaign_status: lead.contact_status || 'READY',
+      postcode: lead.postcode,
+      inquiry_date: lead.inquiry_date,
+      notes: lead.notes,
+      contact_status: lead.contact_status || 'READY',
+      lead_sentiment: lead.lead_sentiment,
+      reply_received_at: lead.reply_received_at,
+      m1_sent_at: lead.m1_sent_at,
+      m2_sent_at: lead.m2_sent_at,
+      m3_sent_at: lead.m3_sent_at,
+      latest_lead_reply: lead.latest_lead_reply,
+      manual_mode: lead.manual_mode || false,
+      call_booked: lead.call_booked || false,
+      archived: lead.archived || false,
+      install_date: lead.install_date,
       created_at: lead.created_at,
     }))
 

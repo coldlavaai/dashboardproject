@@ -49,13 +49,28 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
 
   // Required fields for lead import
   const requiredFields = [
+    // Core fields (required)
     { key: 'first_name', label: 'First Name', required: true },
     { key: 'last_name', label: 'Last Name', required: true },
     { key: 'phone', label: 'Phone Number', required: true },
     { key: 'email', label: 'Email Address', required: true },
     { key: 'postcode', label: 'Postcode', required: true },
+    // Additional fields (preferred)
     { key: 'inquiry_date', label: 'Inquiry Date', required: false, preferred: true },
     { key: 'notes', label: 'Notes', required: false, preferred: true },
+    // DBR tracking fields (optional)
+    { key: 'contact_status', label: 'Contact Status', required: false },
+    { key: 'lead_sentiment', label: 'Lead Sentiment', required: false },
+    { key: 'reply_received', label: 'Reply Received Date', required: false },
+    { key: 'm1_sent', label: 'Message 1 Sent Date', required: false },
+    { key: 'm2_sent', label: 'Message 2 Sent Date', required: false },
+    { key: 'm3_sent', label: 'Message 3 Sent Date', required: false },
+    { key: 'latest_lead_reply', label: 'Latest Lead Reply', required: false },
+    { key: 'conversation_history', label: 'Conversation History', required: false },
+    { key: 'manual_mode', label: 'Manual Mode', required: false },
+    { key: 'call_booked', label: 'Call Booked', required: false },
+    { key: 'archived', label: 'Archived', required: false },
+    { key: 'install_date', label: 'Install Date', required: false },
   ]
 
   const handleDetailsSubmit = async (e: React.FormEvent) => {
@@ -228,9 +243,8 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
       }
       // Inquiry/Enquiry date
       else if (
-        lower.includes('inquiry') ||
-        lower.includes('enquiry') ||
-        (lower.includes('date') && !lower.includes('install'))
+        (lower.includes('inquiry') || lower.includes('enquiry')) &&
+        lower.includes('date')
       ) {
         if (!autoMapping['inquiry_date']) {
           autoMapping['inquiry_date'] = col.name
@@ -238,13 +252,74 @@ export function CreateDatasetModal({ open, onOpenChange }: CreateDatasetModalPro
       }
       // Notes
       else if (
-        lower.includes('note') ||
-        lower.includes('comment') ||
-        lower.includes('description')
+        lower.includes('note') &&
+        !lower.includes('conversation') &&
+        !lower.includes('history')
       ) {
         if (!autoMapping['notes']) {
           autoMapping['notes'] = col.name
         }
+      }
+      // DBR tracking fields
+      // Contact Status
+      else if (lower.includes('contact') && lower.includes('status')) {
+        autoMapping['contact_status'] = col.name
+      }
+      // Lead Sentiment
+      else if (lower.includes('lead') && lower.includes('sentiment')) {
+        autoMapping['lead_sentiment'] = col.name
+      }
+      // Reply Received
+      else if (lower.includes('reply') && lower.includes('received')) {
+        autoMapping['reply_received'] = col.name
+      }
+      // M1 Sent (Message 1)
+      else if (
+        (lower.includes('m1') && lower.includes('sent')) ||
+        (lower.includes('m') && lower.includes('1') && lower.includes('sent'))
+      ) {
+        autoMapping['m1_sent'] = col.name
+      }
+      // M2 Sent (Message 2)
+      else if (
+        (lower.includes('m2') && lower.includes('sent')) ||
+        (lower.includes('m') && lower.includes('2') && lower.includes('sent'))
+      ) {
+        autoMapping['m2_sent'] = col.name
+      }
+      // M3 Sent (Message 3)
+      else if (
+        (lower.includes('m3') && lower.includes('sent')) ||
+        (lower.includes('m') && lower.includes('3') && lower.includes('sent'))
+      ) {
+        autoMapping['m3_sent'] = col.name
+      }
+      // Latest Lead Reply
+      else if (
+        (lower.includes('latest') && lower.includes('reply')) ||
+        (lower.includes('last') && lower.includes('reply'))
+      ) {
+        autoMapping['latest_lead_reply'] = col.name
+      }
+      // Conversation History
+      else if (lower.includes('conversation') && lower.includes('history')) {
+        autoMapping['conversation_history'] = col.name
+      }
+      // Manual Mode
+      else if (lower.includes('manual') && lower.includes('mode')) {
+        autoMapping['manual_mode'] = col.name
+      }
+      // Call Booked
+      else if (lower.includes('call') && lower.includes('booked')) {
+        autoMapping['call_booked'] = col.name
+      }
+      // Archived
+      else if (lower === 'archived' || lower.includes('archived')) {
+        autoMapping['archived'] = col.name
+      }
+      // Install Date
+      else if (lower.includes('install') && lower.includes('date')) {
+        autoMapping['install_date'] = col.name
       }
     })
 
