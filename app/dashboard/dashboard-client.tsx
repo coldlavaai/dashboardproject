@@ -257,11 +257,64 @@ export function DashboardClient() {
         </Card>
       </div>
 
+      {/* Recent Activity - Most Recent Replies */}
+      {!loading && leads.filter(l => l.reply_received_at).length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-2xl font-bold mb-4">Recent Activity</h3>
+          <Card className="border-l-4 border-l-cyan-500">
+            <CardHeader>
+              <CardTitle className="text-lg">💬 Latest Replies</CardTitle>
+              <p className="text-sm text-muted-foreground">Most recent responses from leads</p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {leads
+                  .filter(l => l.reply_received_at)
+                  .sort((a, b) => new Date(b.reply_received_at!).getTime() - new Date(a.reply_received_at!).getTime())
+                  .slice(0, 5)
+                  .map(lead => (
+                    <div key={lead.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold">{lead.first_name} {lead.last_name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(lead.reply_received_at!).toLocaleDateString('en-GB', {
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                        {lead.latest_lead_reply && (
+                          <p className="text-sm text-muted-foreground italic">
+                            "{lead.latest_lead_reply.substring(0, 120)}{lead.latest_lead_reply.length > 120 ? '...' : ''}"
+                          </p>
+                        )}
+                      </div>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        lead.contact_status === 'HOT' ? 'bg-red-500 text-white' :
+                        lead.contact_status === 'WARM' ? 'bg-orange-500 text-white' :
+                        lead.contact_status === 'COLD' ? 'bg-blue-500 text-white' :
+                        'bg-gray-500 text-white'
+                      }`}>
+                        {lead.contact_status}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Status Buckets - Grid Layout (Always show all buckets, even if empty) */}
       {loading ? (
         <div className="text-center py-12 text-muted-foreground">Loading leads...</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div>
+          <h3 className="text-2xl font-bold mb-4">Lead Status Buckets</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <StatusBucket
             bucketKey="CONVERTED"
             title="✨ Converted"
