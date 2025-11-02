@@ -38,8 +38,9 @@ export async function GET() {
         description,
         source,
         total_leads,
-        leads_contacted,
-        leads_converted,
+        active_leads,
+        hot_leads,
+        converted_leads,
         created_at,
         updated_at
       `)
