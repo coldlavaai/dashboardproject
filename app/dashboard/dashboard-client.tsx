@@ -13,9 +13,7 @@ interface DashboardStats {
   callsBooked: number
   converted: number
   replyRate: number
-  messagesS
-
-ent: number
+  messagesSent: number
 }
 
 interface Dataset {
