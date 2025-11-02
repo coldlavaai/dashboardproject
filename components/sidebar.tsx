@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Datasets', href: '/dashboard/datasets', icon: Database },
+  { name: 'Datasets', href: '/datasets', icon: Database },
   { name: 'Leads', href: '/dashboard/leads', icon: Users },
   { name: 'Conversations', href: '/dashboard/conversations', icon: MessageSquare },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
