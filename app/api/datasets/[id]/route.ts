@@ -66,3 +66,50 @@ export async function GET(
     )
   }
 }
+
+export async function DELETE(
+  request: Request,
+  context: RouteContext
+) {
+  try {
+    const { id } = await context.params
+    const user = await getCurrentUser()
+
+    if (!user || !user.profile) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const supabase = await createClient()
+
+    // Get user's client
+    const { data: userClient } = await (supabase
+      .from('user_clients') as any)
+      .select('client_id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (!userClient) {
+      return NextResponse.json({ error: 'No client found' }, { status: 404 })
+    }
+
+    // Delete dataset (cascade will delete leads, conversations, messages)
+    const { error } = await (supabase
+      .from('datasets') as any)
+      .delete()
+      .eq('id', id)
+      .eq('client_id', userClient.client_id)
+
+    if (error) {
+      console.error('Dataset delete error:', error)
+      return NextResponse.json({ error: 'Failed to delete dataset' }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Dataset delete error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}

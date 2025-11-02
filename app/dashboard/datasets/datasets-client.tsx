@@ -5,7 +5,23 @@ import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CreateDatasetModal } from '@/components/create-dataset-modal'
-import { Plus, Database, Users, MessageSquare, TrendingUp } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Plus, Database, Users, MessageSquare, TrendingUp, Trash2, MoreVertical } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { formatDistanceToNow } from 'date-fns'
 
 interface Dataset {
@@ -24,6 +40,9 @@ export function DatasetsClient() {
   const [datasets, setDatasets] = useState<Dataset[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [datasetToDelete, setDatasetToDelete] = useState<Dataset | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     fetchDatasets()
@@ -38,6 +57,38 @@ export function DatasetsClient() {
       console.error('Error fetching datasets:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDeleteClick = (dataset: Dataset, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDatasetToDelete(dataset)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!datasetToDelete) return
+
+    setDeleting(true)
+    try {
+      const response = await fetch(`/api/datasets/${datasetToDelete.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete dataset')
+      }
+
+      // Remove from state
+      setDatasets(datasets.filter(d => d.id !== datasetToDelete.id))
+      setDeleteDialogOpen(false)
+      setDatasetToDelete(null)
+    } catch (error) {
+      console.error('Error deleting dataset:', error)
+      alert('Failed to delete dataset. Please try again.')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -101,22 +152,46 @@ export function DatasetsClient() {
         /* Datasets Grid */
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {datasets.map((dataset) => (
-            <Link href={`/dashboard/datasets/${dataset.id}`} key={dataset.id}>
-              <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <Database className="h-5 w-5 text-primary" />
-                    <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(dataset.created_at), { addSuffix: true })}
-                    </span>
-                  </div>
-                  <CardTitle className="mt-4">{dataset.name}</CardTitle>
-                  {dataset.description && (
-                    <CardDescription className="line-clamp-2">
-                      {dataset.description}
-                    </CardDescription>
-                  )}
-                </CardHeader>
+            <div key={dataset.id} className="relative group">
+              <Link href={`/dashboard/datasets/${dataset.id}`}>
+                <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <Database className="h-5 w-5 text-primary" />
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(dataset.created_at), { addSuffix: true })}
+                        </span>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.preventDefault()}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={(e) => handleDeleteClick(dataset, e)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                    <CardTitle className="mt-4">{dataset.name}</CardTitle>
+                    {dataset.description && (
+                      <CardDescription className="line-clamp-2">
+                        {dataset.description}
+                      </CardDescription>
+                    )}
+                  </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
@@ -143,12 +218,40 @@ export function DatasetsClient() {
                   </div>
                 </CardContent>
               </Card>
-            </Link>
+              </Link>
+            </div>
           ))}
         </div>
       )}
 
       <CreateDatasetModal open={modalOpen} onOpenChange={setModalOpen} />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Dataset?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{datasetToDelete?.name}"? This will permanently delete:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li><strong>{datasetToDelete?.total_leads || 0} leads</strong></li>
+                <li>All conversations and messages</li>
+                <li>All campaign history</li>
+              </ul>
+              <p className="mt-2 font-semibold text-destructive">This action cannot be undone.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? 'Deleting...' : 'Delete Dataset'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
