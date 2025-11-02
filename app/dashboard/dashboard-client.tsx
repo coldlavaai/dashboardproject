@@ -402,6 +402,7 @@ export function DashboardClient() {
             expanded={expandedBuckets.REMOVED}
             onToggle={() => toggleBucket('REMOVED')}
           />
+          </div>
         </div>
       )}
     </div>
