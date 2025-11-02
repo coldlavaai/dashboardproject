@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/actions'
 
 export async function GET(
@@ -20,7 +20,10 @@ export async function GET(
     const search = searchParams.get('search') || ''
     const status = searchParams.get('status') || ''
 
+    // Use regular client for authorization checks
     const supabase = await createClient()
+    // Use service role client for data queries (bypasses RLS)
+    const supabaseAdmin = createServiceRoleClient()
 
     // Get user's client
     const { data: userClient } = await (supabase
@@ -45,8 +48,8 @@ export async function GET(
       return NextResponse.json({ error: 'Dataset not found' }, { status: 404 })
     }
 
-    // Build query
-    let query = (supabase
+    // Build query using service role client (bypasses RLS)
+    let query = (supabaseAdmin
       .from('leads') as any)
       .select('*', { count: 'exact' })
       .eq('dataset_id', id)
